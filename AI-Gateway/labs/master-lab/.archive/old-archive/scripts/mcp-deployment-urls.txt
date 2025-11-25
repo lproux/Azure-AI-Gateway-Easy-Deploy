@@ -1,5 +1,0 @@
-EXCEL_MCP_URL=http://excel-mcp-72998.eastus.azurecontainer.io:8000
-DOCS_MCP_URL=http://docs-mcp-72998.eastus.azurecontainer.io:8000
-ACR_NAME=acrmcp72998
-ACR_SERVER=acrmcp72998.azurecr.io
-DEPLOYMENT_ID=72998
