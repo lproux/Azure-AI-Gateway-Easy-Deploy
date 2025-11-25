@@ -1,6 +1,7 @@
 # Python virtual environments
 venv/
 .venv/
+.venv-py312/
 ENV/
 env/
 **/venv/
@@ -37,6 +38,10 @@ wheels/
 *.swo
 *~
 
+# Jupyter
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
+
 # OS
 .DS_Store
 Thumbs.db
@@ -55,3 +60,7 @@ logs/
 
 # Workshop files
 .workshop/
+
+# Jupyter
+.ipynb_checkpoints/
+**/.ipynb_checkpoints/
