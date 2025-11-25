@@ -1,0 +1,16 @@
+<fragment>
+    <!--
+    Load Balancing Fragment
+    Routes requests to a backend pool with priority-based failover
+    and automatic retry on 429/503 errors.
+    -->
+    <set-backend-service backend-id="{{{{named-value-config-lb-backend-pool-id}}}}" />
+
+    <!-- Retry logic for resilient backend routing -->
+    <retry condition="@(context.Response.StatusCode == 429 || context.Response.StatusCode == 503)"
+           count="{{{{named-value-config-lb-retry-count}}}}"
+           interval="0"
+           first-fast-retry="true">
+        <forward-request buffer-request-body="true" />
+    </retry>
+</fragment>

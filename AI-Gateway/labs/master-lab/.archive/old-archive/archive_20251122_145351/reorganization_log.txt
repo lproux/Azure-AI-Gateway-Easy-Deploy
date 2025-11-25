@@ -1,0 +1,38 @@
+==========================================
+Azure AI Gateway Workshop Reorganization
+==========================================
+
+Step 1: Verify source notebook exists...
+✓ Source found: 836K
+
+Step 2: Creating supporting files...
+✓ Created: bootstrap.env.template
+✓ Created: run_workshop.sh
+✓ Created: run_workshop.ps1
+✓ Created: output/
+
+Step 3: Creating Python reorganization script...
+[Python] Starting notebook reorganization...
+[Python] Loaded source: 145 cells
+[Python] ✓ Created: master-ai-gateway-fix-MCP-clean.ipynb
+[Python] New notebook has 53 cells
+
+Step 4: Verification...
+✓ Clean notebook created: 60K
+  Cells: 53
+
+==========================================
+✅ Reorganization Complete!
+==========================================
+
+Files created:
+  - master-ai-gateway-fix-MCP-clean.ipynb
+  - bootstrap.env.template
+  - run_workshop.sh
+  - run_workshop.ps1
+
+Next steps:
+  1. Review: master-ai-gateway-fix-MCP-clean.ipynb
+  2. Fill in: bootstrap.env
+  3. Run: ./run_workshop.sh
+

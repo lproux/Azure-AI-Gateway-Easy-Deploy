@@ -1,0 +1,472 @@
+====================================================================================================
+NOTEBOOK CELL SCAN REPORT - 2025-11-17T04:17:53.535693
+====================================================================================================
+Total Cells: 173
+Code Cells: 84
+Markdown Cells: 89
+====================================================================================================
+
+Cell 0 [MARKDOWN]: # Master AI Gateway Notebook
+
+Cell 1 [CODE]:
+  Preview: # (-1.0) Section -1: Consolidated Provisioning & Initialization """ Run these cells (-1.x) in order before using legacy sections. Order:   (-1.1) Env Loader   (-1.2) Dependencies Install   (-1.3) Azur...
+
+Cell 2 [CODE]:
+  Preview: # (-1.1) Consolidated Environment Loader (Enhanced) """ Single source of truth for environment configuration. Enhancements: - Auto-creates master-lab.env if missing - Loads and validates environment v...
+
+Cell 3 [CODE]:
+  Preview: # (-1.2) Dependencies Install (Consolidated) import sys, subprocess, pathlib, shlex REQ_FILE = pathlib.Path('requirements.txt') if REQ_FILE.exists():     cmd=[sys.executable,'-m','pip','install','-r',...
+
+Cell 4 [CODE]:
+  Preview: # (-1.3) Azure CLI & Service Principal Setup (Consolidated v2) import json, os, shutil, subprocess, sys, time from pathlib import Path AZ_CREDS_FILE=Path('.azure-credentials.env')  OS_RELEASE = {} try...
+
+Cell 5 [CODE]:
+  Preview: # (-1.3b) MSAL Cache Flush Helper """Helper function to flush MSAL cache when Azure CLI encounters MSAL corruption.  The MSAL error 'Can't get attribute NormalizedResponse' indicates cache corruption....
+
+Cell 6 [CODE]:
+  Preview: # (-1.4) Endpoint Normalizer & Derived Variables """ Derives OPENAI_ENDPOINT and related derived variables if missing. Logic priority: 1. Use explicit OPENAI_ENDPOINT if set (leave unchanged). 2. Else...
+
+Cell 7 [CODE]:
+  Preview: # (-1.5) Unified az() Helper & Login Check """Provides a cached az CLI executor with: - Path reuse via AZ_CLI env (expects (-1.3) run first) - Automatic login prompt if account show fails and no servi...
+
+Cell 8 [CODE]:
+  Preview: # (-1.6) Deployment Helpers (Consolidated) """Utilities for ARM/Bicep deployments via az CLI. Depends on az() from (-1.5). Functions:   compile_bicep(bicep_path) -> str json_template_path   deploy_tem...
+
+Cell 9 [CODE]:
+  Preview: # (-1.7) Unified Policy Application with Auto-Discovery  """Applies one or more API Management policies to the target API using Azure REST API.  Provide policies as a list of (policy_name, policy_xml_...
+
+Cell 10 [CODE]:
+  Preview: # (-1.8) Unified MCP Initialization (Updated for 4 Data Sources) """Initializes MCP servers and APIM-routed APIs.  Available Data Sources:   1. Excel MCP (direct) - Analytics, charts, data processing ...
+  >> POTENTIAL: Excel Processing
+  >> POTENTIAL: MCP Integration
+
+Cell 11 [CODE]:
+  Preview: # (-1.9) Unified AzureOps Wrapper (Enhanced SDK Strategy) """High-level Azure operations wrapper consolidating: - CLI resolution & version - Service principal / interactive login fallback - Generic az...
+  >> POTENTIAL: Semantic Caching (Lab 01)
+  >> POTENTIAL: MCP Integration
+
+Cell 12 [MARKDOWN]: # Section 0 : Consolidated Provisioning & Initialization
+
+Cell 13 [CODE]:
+  Preview: # === Unified Environment Loader & Load Balancing Overview === """ This cell provides a single source of truth for configuration: - Auto-creates `master-lab.env` if missing (non-secret template placeh...
+  >> POTENTIAL: AutoGen
+
+Cell 14 [CODE]:
+  Preview: # Unified Dependencies Install (replaces older dependency cell) import os, sys, subprocess, pathlib, shlex LAB_ROOT = pathlib.Path(r"c:\Users\lproux\OneDrive - Microsoft\bkp\Documents\GitHub\MCP-serve...
+  >> POTENTIAL: MCP Integration
+
+Cell 15 [MARKDOWN]: ## ✅ Optimized Execution Order (Cells 1–25 Refactor)
+
+Cell 16 [CODE]:
+  Preview: # ============================================================================ # LAB 01: Semantic Caching with Azure Redis # ===========================================================================...
+  >> POTENTIAL: Semantic Caching (Lab 01)
+
+Cell 17 [MARKDOWN]: # DEPLOY AND CONFIG
+
+Cell 18 [MARKDOWN]: ### Environment Standardization
+
+Cell 19 [MARKDOWN]: ### Install Required Packages
+
+Cell 21 [CODE]:
+  Preview: # APIM policy apply helper (patched Azure CLI resolution with autodiscovery) import shutil, subprocess, os, sys, textwrap, tempfile from pathlib import Path  AZ_CANDIDATES = [     shutil.which("az"), ...
+
+Cell 22 [MARKDOWN]: ### Load Environment Variables from Deployment Output
+
+Cell 23 [MARKDOWN]: ### Master Lab Configuration
+
+Cell 24 [CODE]:
+  Preview: # Master Lab Configuration  # IMPORTANT: Set your Azure subscription ID # Get this from: Azure Portal > Subscriptions > Copy Subscription ID subscription_id = 'd334f2cd-3efd-494e-9fd3-2470b1a13e4c'  #...
+
+Cell 25 [MARKDOWN]: ### Deployment Helper Functions
+
+Cell 26 [CODE]:
+  Preview: import json import time import os import shutil from pathlib import Path from dotenv import load_dotenv from azure.mgmt.resource import ResourceManagementClient from azure.identity import ClientSecret...
+
+Cell 27 [MARKDOWN]: ### Main Deployment - All 4 Steps
+
+Cell 28 [CODE]:
+  Preview: print('=' * 70) # Load BICEP_DIR (set by Cell 3) BICEP_DIR = Path(os.getenv('BICEP_DIR', 'archive/scripts')) if not BICEP_DIR.exists():     print(f"[deploy] ⚠️  BICEP_DIR not found: {BICEP_DIR}")     ...
+  >> POTENTIAL: MCP Integration
+
+Cell 29 [CODE]:
+  Preview: from pathlib import Path  # --- OPTIONAL BICEP-BASED STEP 2 (AI FOUNDRY ACCOUNTS) --- print("\n" + "="*70) print("BICEP STEP 2: AI Foundry Accounts (Infra-as-Code Option)") print("="*70 + "\n")  # Fal...
+
+Cell 30 [MARKDOWN]: ### Generate .env File
+
+Cell 31 [CODE]:
+  Preview: import os from datetime import datetime  print('[*] Generating master-lab.env...')  # Ensure step2_outputs, step3_outputs and step4_outputs exist (safe fallback to empty dicts) try:     step2_outputs ...
+  >> POTENTIAL: Semantic Caching (Lab 01)
+  >> POTENTIAL: MCP Integration
+
+Cell 32 [CODE]:
+  Preview: # APIM Variable Definitions (for cells that use lowercase names) # These map environment variables to lowercase snake_case for backwards compatibility  import os  # APIM Gateway URLs apim_gateway_url ...
+
+Cell 33 [MARKDOWN]: # Master AI Gateway Lab - 25 Labs Consolidated
+
+Cell 35 [MARKDOWN]: ## Lab 01: Zero to Production
+
+Cell 36 [MARKDOWN]: ### Test 1: Basic Chat Completion
+
+Cell 37 [CODE]:
+  Preview: # ============================================================================ # LAB 02: Token Metrics (OpenAI API Monitoring) # =======================================================================...
+
+Cell 38 [MARKDOWN]: ## Lab 01: Test 1 - Basic Chat Completion
+
+Cell 39 [MARKDOWN]: ### Test 2: Streaming Response
+
+Cell 40 [CODE]:
+  Preview: # Lab 01: Test 2 - Streaming Response (robust with fallback)  print('[*] Testing streaming...')  prompt_messages = [     {'role': 'system', 'content': 'You are a helpful assistant. Stream numbers.'}, ...
+
+Cell 41 [MARKDOWN]: ### Test 3: Multiple Requests
+
+Cell 42 [MARKDOWN]: ## Lab 02: Backend Pool Load Balancing
+
+Cell 43 [CODE]:
+  Preview: # ============================================================================ # LAB 03: Load Balancing with Retry Logic # ============================================================================ ...
+
+Cell 44 [CODE]:
+  Preview: # ============================================================================ # FIX: Create Backend Pool for Load Balancing (Preview API) # ===========================================================...
+
+Cell 45 [CODE]:
+  Preview: # Verification Helper (Optional): List all backends to confirm pool presence import requests, json POOL_API_VERSION = "2023-05-01-preview" list_url = (     f"https://management.azure.com/subscriptions...
+
+Cell 46 [MARKDOWN]: ### Test 1: Load Distribution
+
+Cell 47 [CODE]:
+  Preview: print('Testing load balancing across 3 regions...') responses = [] regions = []  # Track which region processed each request backend_ids = []  # Track which backend served each request  # Resolve requ...
+
+Cell 48 [MARKDOWN]: ### Test 2: Visualize Response Times
+
+Cell 49 [CODE]:
+  Preview: import matplotlib.pyplot as plt import pandas as pd from collections import Counter  # Create DataFrame with response times and regions df = pd.DataFrame({     'Request': range(1, len(responses)+1),  ...
+
+Cell 50 [MARKDOWN]: ### What You'll Learn
+
+Cell 51 [MARKDOWN]: ## Lab 04: Token Metrics Emitting
+
+Cell 52 [CODE]:
+  Preview: # Lab 04 token usage aggregation (auto-initialize client if missing) total_tokens = 0  # Resolve required endpoint pieces from previously loaded deployment outputs / env apim_gateway_url = (     (step...
+
+Cell 53 [MARKDOWN]: ## Lab 05: API Gateway Policy Foundations
+
+Cell 54 [CODE]:
+  Preview: # ============================================================================ # OPTIONAL DIAGNOSTIC CELL - Can be skipped # ===========================================================================...
+
+Cell 55 [MARKDOWN]: ## Lab 06: Access Controlling
+
+Cell 56 [MARKDOWN]: # Access Control Workshop
+
+Cell 57 [CODE]:
+  Preview: import requests, os, subprocess, time from azure.identity import DefaultAzureCredential  print("" + "="*80) print("📝 APPLY: JWT Only Policy (disable subscriptionRequired)") print("="*80 + "")  # Get m...
+
+Cell 58 [CODE]:
+  Preview: import requests, os, subprocess, time from azure.identity import DefaultAzureCredential  # Configuration subscription_id = os.environ.get('SUBSCRIPTION_ID') resource_group = os.environ.get('RESOURCE_G...
+
+Cell 59 [CODE]:
+  Preview: import requests, os, subprocess, time from azure.identity import DefaultAzureCredential  print("" + "="*80) print("📝 APPLY: Dual Auth (JWT + API Key)") print("="*80 + "")  # Get management token crede...
+
+Cell 60 [CODE]:
+  Preview: import requests, os, time from azure.identity import DefaultAzureCredential  print("" + "="*80) print("🔄 RESET: API-KEY Authentication (for remaining labs)") print("="*80 + "")  # Configuration subscr...
+
+Cell 61 [MARKDOWN]: ## Troubleshooting
+
+Cell 62 [MARKDOWN]: ## Lab 07: Content Safety
+
+Cell 63 [CODE]:
+  Preview: # Lab 07 Content Safety Test (adds JWT auth if required by current APIM policy)  def _get_jwt_token():     # Reuse existing jwt_token if earlier cell created it     if 'jwt_token' in globals() and jwt...
+
+Cell 64 [MARKDOWN]: ## Lab 08: Model Routing
+
+Cell 65 [CODE]:
+  Preview: # Lab 08: Model Routing test (fixed for Dual Auth + invalid model + 401 handling)  import os from openai import AuthenticationError  # Ensure DefaultAzureCredential is available even if this cell runs...
+  >> POTENTIAL: Model Routing
+
+Cell 66 [MARKDOWN]: ## Lab 09: AI Foundry SDK
+
+Cell 67 [MARKDOWN]: ## AI Foundry SDK lab
+
+Cell 68 [CODE]:
+  Preview: deployment_name = "gpt-4o-mini"  missing_vars = [k for k, v in {     'apim_gateway_url': globals().get('apim_gateway_url'),     'inference_api_path': globals().get('inference_api_path'),     'apim_api...
+
+Cell 69 [MARKDOWN]: # Section: MCP Fundamentals
+
+Cell 70 [MARKDOWN]: ### Data Flow
+
+Cell 71 [CODE]:
+  Preview: # Lab Example: Weather API (via APIM) """ Demonstrates Weather API access through Azure API Management.  Features: - Current weather for a city - Multi-city comparison - 5-day forecast - Temperature, ...
+  >> POTENTIAL: MCP Integration
+
+Cell 72 [CODE]:
+  Preview: # Lab 10 Example: GitHub API (via APIM) """ Demonstrates GitHub REST API access through Azure API Management.  Features: - Repository details - Statistics (stars, forks, watchers) - Recent activity ""...
+  >> POTENTIAL: MCP Integration
+
+Cell 73 [MARKDOWN]: ### Lab 14: GitHub Repository Access
+
+Cell 74 [CODE]:
+  Preview: # GitHub: Search and explore repositories (via APIM) """ Search GitHub repositories using various criteria: - Language filters - Star count filters - Sort by relevance, stars, or updated date """  pri...
+
+Cell 75 [MARKDOWN]: ### Lab 15: GitHub + AI Code Analysis
+
+Cell 76 [CODE]:
+  Preview: # GitHub: Repository analysis (via APIM) """ Perform deep analysis of a GitHub repository: - Contributor statistics - Issue tracking - Pull request metrics - Language breakdown - Community health """ ...
+
+Cell 77 [CODE]:
+  Preview: # Multi-MCP AI Aggregation: Cross-Domain Analysis """ Demonstrates aggregating data from multiple MCP servers and using AI to synthesize insights.  This example: 1. Fetches GitHub repository data (sta...
+  >> POTENTIAL: MCP Integration
+
+Cell 78 [MARKDOWN]: ## Section 2 Advanced MCP
+
+Cell 79 [MARKDOWN]: ### Exercise 2.1: MCP Data + AI
+
+Cell 80 [CODE]:
+  Preview: # Exercise 2.1: Sales Analysis via Local Pandas (NO MCP upload) print(" Sales Analysis via Local Pandas + Azure OpenAI") print("=" * 80)  from pathlib import Path import pandas as pd import json  try:...
+  >> POTENTIAL: Excel Processing
+
+Cell 81 [MARKDOWN]: ### Exercise 2.2: Sales Analysis via MCP + AI ONLY
+
+Cell 82 [CODE]:
+  Preview: # This cell acts as a fallback if the primary MCP analysis in the previous cell fails.  if 'sales_data_info' not in locals() or not sales_data_info:     print("⚠️ MCP analysis failed or returned no da...
+  >> POTENTIAL: Excel Processing
+
+Cell 84 [MARKDOWN]: ### Excersice 2.3 Azure Cost Analysis via MCP
+
+Cell 85 [CODE]:
+  Preview: # Exercise 2.3: Azure Cost Analysis via Local Pandas print("💰 Azure Cost Analysis via Local Pandas + Azure OpenAI") print("=" * 80)  from pathlib import Path import pandas as pd  try:     # FIXED: Use...
+  >> POTENTIAL: Excel Processing
+
+Cell 86 [MARKDOWN]: ### Exercise 2.4 : Function Calling with MCP Tools
+
+Cell 87 [CODE]:
+  Preview: # Exercise 2.4 & 2.5: Function Calling with MCP Tools (enhanced diagnostics) # Architecture: MCP connects directly to server, OpenAI goes through APIM  import json import asyncio import time from mcp ...
+  >> POTENTIAL: MCP Integration
+
+Cell 88 [MARKDOWN]: ## Section 3: Advanced Framework + MCP Integration
+
+Cell 89 [MARKDOWN]: ## Exercise 3.1: Microsoft Agent Framework with MCP
+
+Cell 90 [MARKDOWN]: ### ⚠️ Exercise 3.1: Microsoft Agent Framework with MCP (COMMENTED OUT)
+
+Cell 91 [MARKDOWN]: ## Exercise 3.2: Semantic Kernel OpenAI Agent with MCP + Timeout Handling
+
+Cell 92 [CODE]:
+  Preview: # import asyncio # import nest_asyncio # from semantic_kernel.agents import ChatCompletionAgent, ChatHistoryAgentThread # from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion # from s...
+  >> POTENTIAL: Semantic Kernel
+  >> POTENTIAL: MCP Integration
+
+Cell 93 [MARKDOWN]: ## 🧪 SEMANTIC KERNEL TESTING SUITE - 15 TECHNIQUES
+
+Cell 94 [CODE]:
+  Preview: # ======================================================================== # TECHNIQUE 1: Direct Azure OpenAI (Baseline - No SK, No MCP) # =============================================================...
+  >> POTENTIAL: MCP Integration
+
+Cell 95 [CODE]:
+  Preview: # ======================================================================== # TECHNIQUE 2: Semantic Kernel Without MCP (Baseline) # =====================================================================...
+  >> POTENTIAL: Semantic Kernel
+
+Cell 96 [CODE]:
+  Preview: # ======================================================================== # TECHNIQUE 3: ChatCompletionAgent Without MCP (Baseline) # =================================================================...
+  >> POTENTIAL: Semantic Kernel
+
+Cell 97 [CODE]:
+  Preview: # ======================================================================== # TECHNIQUE 4: Manual MCP Connection with Timeout (Diagnostic) # ============================================================...
+  >> POTENTIAL: MCP Integration
+
+Cell 98 [CODE]:
+  Preview: # ======================================================================== # TECHNIQUE 8: Direct Function Calling (No Framework) # =====================================================================...
+
+Cell 99 [CODE]:
+  Preview: # ======================================================================== # TECHNIQUE 15: Hybrid Approach - SK Orchestration + Direct HTTP # ==========================================================...
+  >> POTENTIAL: Semantic Kernel
+  >> POTENTIAL: MCP Integration
+
+Cell 100 [MARKDOWN]: ## 🎯 PRODUCTION SOLUTION: AutoGen + APIM
+
+Cell 101 [CODE]:
+  Preview: # ======================================================================== # PRODUCTION: AutoGen + APIM + MCP (SSE Transport) # ========================================================================...
+  >> POTENTIAL: AutoGen
+  >> POTENTIAL: MCP Integration
+
+Cell 102 [MARKDOWN]: ## 📊 TESTING RESULTS SUMMARY
+
+Cell 103 [MARKDOWN]: ### Exercise 3.3 Execute an [AutoGen Agent using MCP Tools](https://microsoft.github.io/autogen/stable/reference/python/autogen_ext.tools.mcp.html) via Azure API Management
+
+Cell 105 [MARKDOWN]: ### Run the GitHub MCP Server with VS Code to retrieve GitHub Issues
+
+Cell 106 [CODE]:
+  Preview: import asyncio from asyncio import TimeoutError import nest_asyncio nest_asyncio.apply()  async def run_with_timeout(task, timeout_seconds=300, task_name="Semantic Kernel task"):     """     Run Seman...
+  >> POTENTIAL: Semantic Kernel
+  >> POTENTIAL: MCP Integration
+
+Cell 107 [MARKDOWN]: ### 🔍 Diagnostic Troubleshooting Cell
+
+Cell 108 [CODE]:
+  Preview: import asyncio import httpx import sys from datetime import datetime  print("=" * 80) print("SEMANTIC KERNEL DIAGNOSTIC REPORT") print(f"Generated: {datetime.now().isoformat()}") print("=" * 80)  # Te...
+  >> POTENTIAL: Semantic Kernel
+  >> POTENTIAL: MCP Integration
+
+Cell 109 [MARKDOWN]: ### Semantic Cache Performance
+
+Cell 110 [CODE]:
+  Preview: import redis.asyncio as redis  # unused currently; keep if planning Redis integration import random  # required for random.choice  questions = [     'How to make coffee?',     'What is the best way to...
+  >> POTENTIAL: Semantic Caching (Lab 01)
+
+Cell 111 [MARKDOWN]: # Section 2: Model Context Protocol (MCP) Integration
+
+Cell 112 [MARKDOWN]: # Section 3: Advanced Features
+
+Cell 113 [MARKDOWN]: ## Lab 22: Image Generation
+
+Cell 114 [MARKDOWN]: ### Test: Generate Images
+
+Cell 115 [CODE]:
+  Preview: # Deployment discovery for image & vision models import os, requests, json from typing import Dict, List  inference_api_path = os.getenv("INFERENCE_API_PATH", "inference") # Safely derive gateway URL;...
+
+Cell 116 [MARKDOWN]: ### Image & Vision Model Flow (Updated)
+
+Cell 117 [CODE]:
+  Preview: # Validate required environment variables required_vars = ['RESOURCE_GROUP', 'APIM_GATEWAY_URL'] missing = [v for v in required_vars if not os.getenv(v)] if missing:     print(f"⚠️  Missing environmen...
+
+Cell 118 [MARKDOWN]: ### Lab 01: Test - Temperature Variations
+
+Cell 119 [CODE]:
+  Preview: for temp in [0.0, 0.5, 1.0, 1.5, 2.0]:     response = client.chat.completions.create(         model='gpt-4o-mini',         messages=[{'role': 'user', 'content': 'Write a creative sentence'}],         ...
+
+Cell 120 [MARKDOWN]: ### Lab 01: Test - System Prompts
+
+Cell 121 [CODE]:
+  Preview: system_prompts = [     'You are a helpful assistant.',     'You are a sarcastic comedian.',     'You are a professional technical writer.',     'You are a poet.' ]  for prompt in system_prompts:     r...
+
+Cell 122 [MARKDOWN]: ### Lab 19: Test - Redis Connection
+
+Cell 123 [CODE]:
+  Preview: import redis.asyncio as redis  # Resolve Redis connection settings without redefining earlier variables if already present # Prefer existing globals, then environment (.env / master-lab.env), then ste...
+
+Cell 124 [MARKDOWN]: ### Lab 22: Test - Multiple Image Styles
+
+Cell 125 [CODE]:
+  Preview: # FIXED: Updated to use FLUX-1.1-pro instead of dall-e-3 prompts = [     'A serene mountain landscape at dawn',     'Abstract geometric patterns in blue and gold',     'A cyberpunk city street at nigh...
+
+Cell 126 [MARKDOWN]: ### Lab 13: MCP Client Authorization
+
+Cell 127 [CODE]:
+  Preview: # MCP OAuth authorization test with APIM - ENHANCED with retry logic  print("=== MCP Authorization Test ===")  import time import requests import os  # Fallback for client_id if not defined earlier if...
+  >> POTENTIAL: MCP Integration
+
+Cell 128 [MARKDOWN]: ### Lab 14: A2A Agents - Multi-Agent Communication
+
+Cell 129 [CODE]:
+  Preview: # Agent-to-Agent (A2A) communication test via existing agent outputs and LLM refinement print('Testing A2A agent communication...')  required = ['planner', 'critic', 'summarizer'] missing = [r for r i...
+
+Cell 130 [MARKDOWN]: ### Lab 15: OpenAI Agents - Create Assistant
+
+Cell 131 [CODE]:
+  Preview: # Using Azure AI Agents (fallback stub if project_client is not defined)  if 'project_client' not in globals():     # Minimal in-memory stub to avoid NameError and simulate Agents API behavior     imp...
+
+Cell 132 [MARKDOWN]: ### Lab 16: AI Agent Service - Multiple Agents
+
+Cell 133 [CODE]:
+  Preview: import time  # Multi-agent scenario (planning, critic, summarizer) using existing agents_client + client print('AI Agent Service: multi-agent test...')  # Create agents agents = {     'planner': agent...
+  >> POTENTIAL: MCP Integration
+
+Cell 134 [MARKDOWN]: ### Lab 18: Function Calling - Multiple Functions
+
+Cell 135 [CODE]:
+  Preview: functions = [     {         'name': 'get_weather',         'description': 'Get weather for a location',         'parameters': {             'type': 'object',             'properties': {               ...
+
+Cell 136 [MARKDOWN]: ### Lab 20: Message Storing - Store and Retrieve
+
+Cell 137 [CODE]:
+  Preview: # Cosmos DB message storage with auto-firewall configuration  from azure.cosmos import CosmosClient, PartitionKey from azure.cosmos.exceptions import CosmosHttpResponseError import subprocess import t...
+
+Cell 138 [MARKDOWN]: ### Lab 24: FinOps Framework - Cost Analysis
+
+Cell 139 [CODE]:
+  Preview: # Simulate cost tracking costs = [] for i in range(10):     response = client.chat.completions.create(         model='gpt-4o-mini',         messages=[{'role': 'user', 'content': 'test'}],         max_...
+
+Cell 140 [MARKDOWN]: ### 🧪 Test the Policy change with direct HTTP call
+
+Cell 141 [MARKDOWN]: ### 🧪 Test the Policy Change with the Azure OpenAI Python SDK
+
+Cell 142 [MARKDOWN]: ### 🔍 Display LLM logging
+
+Cell 143 [CODE]:
+  Preview: import pandas as pd  query = "let llmHeaderLogs = ApiManagementGatewayLlmLog \ | where DeploymentName != ''; \ let llmLogsWithSubscriptionId = llmHeaderLogs \ | join kind=leftouter ApiManagementGatewa...
+
+Cell 144 [MARKDOWN]: ## All 31 Labs Tested Successfully!
+
+Cell 145 [CODE]:
+  Preview: print('='*60) print('MASTER LAB TESTING COMPLETE') print('='*60) print('\nSummary:') print('  - 31 labs tested') print('  - All features validated') print('  - Ready for production use') print('\nNext...
+
+Cell 146 [MARKDOWN]: ### Lab 01: Extended Test 1 - Scenario Variations
+
+Cell 147 [MARKDOWN]: # Extra Cells
+
+Cell 148 [CODE]:
+  Preview: import os, pathlib TENANT_ID = "2b9d9f47-1fb6-400a-a438-39fe7d768649" os.environ["AZURE_TENANT_ID"] = TENANT_ID print(f"AZURE_TENANT_ID exported: {TENANT_ID}") # Ensure .env has the tenant id (already...
+
+Cell 149 [CODE]:
+  Preview: import base64, math  # Image & Vision Model Initialization - SIMPLIFIED to APIM-only approach  IMAGE_MODEL = globals().get('DALL_E_DEPLOYMENT') or os.environ.get('DALL_E_DEPLOYMENT') or 'gpt-image-1' ...
+
+Cell 150 [CODE]:
+  Preview: # Add at start of Cell 148 image_model = globals().get('IMAGE_MODEL') or 'gpt-image-1'  # Test Image Generation (Minimal) - FIXED to use FLUX models import time  TEST_PROMPT = "A tiny sketch of a futu...
+
+Cell 151 [CODE]:
+  Preview: # Set Azure OpenAI resource name manually if not discovered # Replace PLACEHOLDER_RESOURCE with your actual Azure OpenAI resource (e.g., aoai-master-lab or openai-xyz123) resource_name = os.environ.ge...
+
+Cell 152 [MARKDOWN]: ### Manual Deployment Commands (Fallback)
+
+Cell 154 [MARKDOWN]: ### Exercise 2.5: Dynamic Column Analysis
+
+Cell 155 [CODE]:
+  Preview: # Exercise 2.5: Dynamic Column Analysis print(" Dynamic MCP Analysis with User-Defined Columns") print("=" * 80)  try:     # --- Define columns for analysis ---     # These variables can be changed to...
+  >> POTENTIAL: Excel Processing
+  >> POTENTIAL: MCP Integration
+
+Cell 156 [MARKDOWN]: ### Exercise 2.6: AI-Generated Sales Insights
+
+Cell 157 [MARKDOWN]: ## Test MCP-Enabled Agent
+
+Cell 158 [CODE]:
+  Preview: # Post-Upgrade Verification for Agents and AzureOpenAI import importlib, json  ver_openai = None try:     import openai     ver_openai = getattr(openai, '__version__', 'unknown') except Exception as e...
+
+Cell 159 [MARKDOWN]: ### Agent Dependency Note for MCP Labs
+
+Cell 160 [MARKDOWN]: # Phase 3: Advanced Semantic Kernel + AutoGen Features
+
+Cell 161 [MARKDOWN]: ## Phase 3, Cell 1: SK Plugin for Gateway-Routed Function Calling
+
+Cell 162 [CODE]:
+  Preview: # ============================================================================ # Semantic Kernel: Plugin with Function Calling via APIM Gateway # ======================================================...
+  >> POTENTIAL: Semantic Kernel
+
+Cell 163 [MARKDOWN]: ## Phase 3, Cell 2: SK Streaming Chat with Function Calling
+
+Cell 164 [CODE]:
+  Preview: # ============================================================================ # Semantic Kernel: Streaming Chat with Function Calling # ===============================================================...
+  >> POTENTIAL: Semantic Kernel
+
+Cell 165 [MARKDOWN]: ## Phase 3, Cell 3: AutoGen Multi-Agent Conversation via APIM
+
+Cell 166 [CODE]:
+  Preview: # ============================================================================ # AutoGen: Multi-Agent Conversation via APIM Gateway # ==================================================================...
+  >> POTENTIAL: AutoGen
+
+Cell 167 [MARKDOWN]: ## Phase 3, Cell 4: SK Agent with Custom Azure OpenAI Client
+
+Cell 168 [CODE]:
+  Preview: # ============================================================================ # Semantic Kernel: ChatCompletionAgent with APIM Routing # ==============================================================...
+  >> POTENTIAL: Semantic Kernel
+
+Cell 169 [MARKDOWN]: ## Phase 3, Cell 5: SK Vector Search with Gateway-Routed Embeddings
+
+Cell 170 [CODE]:
+  Preview: # ============================================================================ # Semantic Kernel: Vector Search with APIM-Routed Embeddings # ==========================================================...
+  >> POTENTIAL: Semantic Kernel
+  >> POTENTIAL: AutoGen
+
+Cell 171 [MARKDOWN]: ## Phase 3, Cell 6: SK + AutoGen Hybrid Orchestration
+
+Cell 172 [CODE]:
+  Preview: # ============================================================================ # Hybrid: Semantic Kernel Plugins + AutoGen Orchestration # =============================================================...
+  >> POTENTIAL: Semantic Kernel
+  >> POTENTIAL: AutoGen

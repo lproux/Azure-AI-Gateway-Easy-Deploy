@@ -1,0 +1,14 @@
+<fragment>
+    <!--
+    Token Metrics Fragment
+    Emits Azure OpenAI token consumption metrics to Application Insights
+    with custom dimensions for tracking and analytics.
+    -->
+    <azure-openai-emit-token-metric namespace="{{{{named-value-config-token-metrics-namespace}}}}">
+        <dimension name="Subscription ID" value="@(context.Subscription?.Id ?? "unknown")" />
+        <dimension name="Client IP" value="@(context.Request.IpAddress)" />
+        <dimension name="API ID" value="@(context.Api.Id)" />
+        <dimension name="User ID" value="@(context.Request.Headers.GetValueOrDefault(&quot;x-user-id&quot;, &quot;anonymous&quot;))" />
+        <dimension name="Model" value="@(context.Request.MatchedParameters.GetValueOrDefault(&quot;deployment-id&quot;, &quot;unknown&quot;))" />
+    </azure-openai-emit-token-metric>
+</fragment>

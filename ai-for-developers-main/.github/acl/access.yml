@@ -1,0 +1,21 @@
+# Documentation for ACL policy: https://aka.ms/gim/docs/policy/acl
+
+name: Access control list
+description: List of teams and their permission levels
+resource: repository
+where:
+configuration:
+  manageAccess:
+  - team: 1es-ai-tools-for-dev
+    role: Maintain
+  - team: 1es-ai-tools-cela
+    role: Write
+  # 1es-ai-tools-for-devs-mcp-sg
+  - team: docz1esaimcp
+    role: Maintain
+  - team: oseaem
+    role: Maintain
+  - team: ospoj2i
+    role: Maintain
+  - team: oscalts
+    role: Maintain

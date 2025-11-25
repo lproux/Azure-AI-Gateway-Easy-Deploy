@@ -1,0 +1,1523 @@
+"""
+MCP Helper Functions for Jupyter Notebooks
+
+This module provides helper functions to simplify calling MCP servers
+from Jupyter notebooks in the workshop exercises.
+
+Usage:
+    from notebook_mcp_helpers import MCPClient
+
+    # Initialize client
+    mcp = MCPClient()
+
+    # Call Excel Analytics tools
+    result = mcp.excel.analyze_sales(
+        file_path="/app/data/sales_performance.xlsx",
+        group_by="Region"
+    )
+"""
+
+import json
+import httpx
+from typing import Dict, Any, Optional, List
+from pathlib import Path
+
+
+class MCPClient:
+    """Main MCP client for workshop exercises"""
+
+    def __init__(self, config_file: str = ".mcp-servers-config"):
+        """
+        Initialize MCP client with configuration
+
+        Supports 4 data sources:
+        - 2 Direct MCP Servers (Excel, Docs)
+        - 2 APIM-Routed REST APIs (GitHub, Weather)
+
+        Args:
+            config_file: Path to MCP servers configuration file
+        """
+        self.config = self._load_config(config_file)
+
+        # Direct MCP Servers (Native MCP Protocol)
+        excel_url = self.config.get("EXCEL_MCP_URL", "")
+        self.excel = ExcelAnalyticsMCP(excel_url) if excel_url else None
+
+        docs_url = self.config.get("DOCS_MCP_URL", "")
+        self.docs = ResearchDocumentsMCP(docs_url) if docs_url else None
+
+        # APIM Configuration
+        apim_key = self.config.get("APIM_SUBSCRIPTION_KEY", "")
+
+        # GitHub through APIM (REST API, not MCP protocol)
+        apim_github_url = self.config.get("APIM_GITHUB_URL", "")
+        if apim_github_url and apim_key:
+            self.github = APIMGitHubClient(apim_github_url, apim_key)
+        else:
+            self.github = None
+
+        # Weather through APIM (REST API)
+        apim_weather_url = self.config.get("APIM_WEATHER_URL", "")
+        weather_api_key = self.config.get("OPENWEATHER_API_KEY", "")
+        if apim_weather_url and apim_key and weather_api_key:
+            self.weather = WeatherAPIClient(apim_weather_url, apim_key, weather_api_key)
+        else:
+            self.weather = None
+
+        self._request_id = 0
+
+    def _load_config(self, config_file: str) -> Dict[str, str]:
+        """Load configuration from file"""
+        config = {}
+        config_path = Path(config_file)
+
+        if not config_path.exists():
+            raise FileNotFoundError(
+                f"Configuration file not found: {config_file}\n"
+                f"Please run deployment script first."
+            )
+
+        with open(config_path, 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, value = line.split('=', 1)
+                    config[key] = value
+
+        return config
+
+    def _next_id(self) -> int:
+        """Get next request ID"""
+        self._request_id += 1
+        return self._request_id
+
+    def call_tool(
+        self,
+        server_url: str,
+        tool_name: str,
+        arguments: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """
+        Generic tool call to any MCP server
+
+        Args:
+            server_url: MCP server URL
+            tool_name: Name of the tool to call
+            arguments: Tool arguments
+
+        Returns:
+            Tool execution result
+        """
+        response = httpx.post(
+            f"{server_url}/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            },
+            timeout=30.0
+        )
+
+        response.raise_for_status()
+        result = response.json()
+
+        if "error" in result:
+            raise MCPError(f"MCP Error: {result['error']}")
+
+        return result.get("result", {})
+
+
+class ExcelAnalyticsMCP:
+    """Excel Analytics MCP Server client"""
+
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self._request_id = 0
+
+    def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal method to call Excel MCP tools"""
+        response = httpx.post(
+            f"{self.server_url}/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            },
+            timeout=30.0
+        )
+
+        response.raise_for_status()
+        result = response.json()
+
+        # Check for JSON-RPC error response
+        if "error" in result and result["error"] is not None:
+            error_msg = result["error"]
+            if isinstance(error_msg, dict):
+                error_msg = error_msg.get("message", str(error_msg))
+            raise MCPError(f"Excel MCP Error: {error_msg}")
+
+        # Return the result content (may be wrapped in content field)
+        if "result" in result:
+            result_data = result["result"]
+            # Handle MCP tool response format with content array
+            if isinstance(result_data, dict) and "content" in result_data:
+                content = result_data["content"]
+                if isinstance(content, list) and len(content) > 0:
+                    # Extract text from first content item
+                    return content[0].get("text", content[0]) if isinstance(content[0], dict) else content[0]
+            return result_data
+
+        return {}
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+    def upload_excel(
+        self,
+        local_file_path: str,
+        sheet_name: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Upload a local Excel file to the MCP server
+
+        Args:
+            local_file_path: Path to local Excel file
+            sheet_name: Optional sheet name
+
+        Returns:
+            Upload result with file info
+        """
+        import base64
+        from pathlib import Path
+
+        file_path = Path(local_file_path)
+
+        if not file_path.exists():
+            raise FileNotFoundError(f"File not found: {local_file_path}")
+
+        # Read and encode file
+        with open(file_path, 'rb') as f:
+            file_bytes = f.read()
+            file_content_base64 = base64.b64encode(file_bytes).decode('utf-8')
+
+        return self._call("upload_excel", {
+            "file_name": file_path.name,
+            "file_content_base64": file_content_base64,
+            "sheet_name": sheet_name
+        })
+
+    def load_excel(
+        self,
+        file_path: str,
+        sheet_name: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Load an Excel file into memory
+
+        Args:
+            file_path: Path to Excel file (e.g., "/app/data/sales_performance.xlsx")
+            sheet_name: Optional sheet name
+
+        Returns:
+            Dict with file info, columns, preview
+        """
+        return self._call("load_excel", {
+            "file_path": file_path,
+            "sheet_name": sheet_name
+        })
+
+    def analyze_sales(
+        self,
+        file_path: str,
+        group_by: str = "Region",
+        metric: str = "TotalSales"
+    ) -> Dict[str, Any]:
+        """
+        Analyze sales data from Excel file
+
+        Args:
+            file_path: Path to Excel file
+            group_by: Column to group by (e.g., "Region", "Product")
+            metric: Metric to analyze (e.g., "TotalSales", "Quantity")
+
+        Returns:
+            Dict with analysis results and summary
+        """
+        return self._call("analyze_sales", {
+            "file_path": file_path,
+            "group_by": group_by,
+            "metric": metric
+        })
+
+    def calculate_costs(
+        self,
+        file_path: str,
+        resource_type_col: str = "Resource_Type",
+        cost_col: str = "Daily_Cost"
+    ) -> Dict[str, Any]:
+        """
+        Calculate Azure resource costs from Excel data
+
+        Args:
+            file_path: Path to Excel file with cost data
+            resource_type_col: Column name for resource type
+            cost_col: Column name for cost
+
+        Returns:
+            Dict with cost analysis and monthly projection
+        """
+        return self._call("calculate_costs", {
+            "file_path": file_path,
+            "resource_type_col": resource_type_col,
+            "cost_col": cost_col
+        })
+
+    def generate_chart(
+        self,
+        file_path: str,
+        chart_type: str,
+        x_column: str,
+        y_column: str
+    ) -> Dict[str, Any]:
+        """
+        Generate a chart from Excel data
+
+        Args:
+            file_path: Path to Excel file
+            chart_type: Type of chart ("bar", "line", "pie")
+            x_column: Column for X-axis
+            y_column: Column for Y-axis
+
+        Returns:
+            Dict with base64-encoded image
+        """
+        return self._call("generate_chart", {
+            "file_path": file_path,
+            "chart_type": chart_type,
+            "x_column": x_column,
+            "y_column": y_column
+        })
+
+
+class ResearchDocumentsMCP:
+    """Research Documents MCP Server client"""
+
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self._request_id = 0
+
+    def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal method to call Docs MCP tools"""
+        response = httpx.post(
+            f"{self.server_url}/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            },
+            timeout=30.0
+        )
+
+        response.raise_for_status()
+        result = response.json()
+
+        # Check for JSON-RPC error response
+        if "error" in result and result["error"] is not None:
+            error_msg = result["error"]
+            if isinstance(error_msg, dict):
+                error_msg = error_msg.get("message", str(error_msg))
+            raise MCPError(f"Docs MCP Error: {error_msg}")
+
+        # Return the result content (may be wrapped in content field)
+        if "result" in result:
+            result_data = result["result"]
+            # Handle MCP tool response format with content array
+            if isinstance(result_data, dict) and "content" in result_data:
+                content = result_data["content"]
+                if isinstance(content, list) and len(content) > 0:
+                    # Extract text from first content item
+                    return content[0].get("text", content[0]) if isinstance(content[0], dict) else content[0]
+            return result_data
+
+        return {}
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+    def list_documents(self, pattern: str = "*.md") -> Dict[str, Any]:
+        """
+        List available documents
+
+        Args:
+            pattern: Glob pattern to filter files
+
+        Returns:
+            Dict with list of documents
+        """
+        return self._call("list_documents", {"pattern": pattern})
+
+    def search_documents(
+        self,
+        query: str,
+        case_sensitive: bool = False
+    ) -> Dict[str, Any]:
+        """
+        Search documents for keywords
+
+        Args:
+            query: Search query
+            case_sensitive: Whether search is case-sensitive
+
+        Returns:
+            Dict with search results and context
+        """
+        return self._call("search_documents", {
+            "query": query,
+            "case_sensitive": case_sensitive
+        })
+
+    def get_document_content(self, file_name: str) -> Dict[str, Any]:
+        """
+        Get full content of a document
+
+        Args:
+            file_name: Name of the document
+
+        Returns:
+            Dict with document content
+        """
+        return self._call("get_document_content", {"file_name": file_name})
+
+    def compare_documents(self, file_names: List[str]) -> Dict[str, Any]:
+        """
+        Compare multiple documents
+
+        Args:
+            file_names: List of document file names
+
+        Returns:
+            Dict with comparison analysis
+        """
+        return self._call("compare_documents", {"file_names": file_names})
+
+
+class StreamableHTTPMCPClient:
+    """
+    Base class for MCP clients using Streamable HTTP transport (MCP 2024-11-05)
+
+    This implements the correct MCP Streamable HTTP protocol:
+    1. Initialize session with POST + "initialize" method
+    2. Store session ID from Mcp-Session-Id header
+    3. Use session ID in subsequent requests
+    """
+
+    def __init__(self, server_url: str, endpoint_path: str):
+        self.server_url = server_url
+        self.endpoint_path = endpoint_path
+        self.endpoint = f"{server_url}{endpoint_path}"
+        self._request_id = 0
+        self._session_id = None
+
+    def _ensure_initialized(self):
+        """Initialize MCP session if not already initialized"""
+        if self._session_id is not None:
+            return
+
+        try:
+            response = httpx.post(
+                self.endpoint,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": self._next_id(),
+                    "method": "initialize",
+                    "params": {
+                        "protocolVersion": "2024-11-05",
+                        "capabilities": {},
+                        "clientInfo": {
+                            "name": "notebook-client",
+                            "version": "1.0.0"
+                        }
+                    }
+                },
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream"
+                },
+                timeout=30.0
+            )
+            response.raise_for_status()
+
+            # Extract session ID from header
+            self._session_id = response.headers.get("mcp-session-id")
+            if not self._session_id:
+                raise MCPError("Server did not return Mcp-Session-Id header")
+
+        except httpx.HTTPStatusError as e:
+            raise MCPError(f"MCP initialization failed: {e.response.status_code} - {e.response.text}")
+        except Exception as e:
+            raise MCPError(f"MCP initialization error: {e}")
+
+    def _call_tool(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Call an MCP tool using Streamable HTTP protocol"""
+        self._ensure_initialized()
+
+        try:
+            response = httpx.post(
+                self.endpoint,
+                json={
+                    "jsonrpc": "2.0",
+                    "id": self._next_id(),
+                    "method": "tools/call",
+                    "params": {
+                        "name": tool_name,
+                        "arguments": arguments
+                    }
+                },
+                headers={
+                    "Content-Type": "application/json",
+                    "Accept": "application/json, text/event-stream",
+                    "Mcp-Session-Id": self._session_id
+                },
+                timeout=30.0
+            )
+            response.raise_for_status()
+
+            # Parse SSE response - extract the data from event: message
+            response_text = response.text
+            if "event: message" in response_text:
+                # Extract JSON from SSE format
+                lines = response_text.split('\n')
+                for line in lines:
+                    if line.startswith('data: '):
+                        result = json.loads(line[6:])  # Remove 'data: ' prefix
+                        break
+            else:
+                result = response.json()
+
+            # Check for JSON-RPC error
+            if "error" in result and result["error"] is not None:
+                error_msg = result["error"]
+                if isinstance(error_msg, dict):
+                    error_msg = error_msg.get("message", str(error_msg))
+                raise MCPError(f"MCP Error: {error_msg}")
+
+            # Extract result content
+            if "result" in result:
+                result_data = result["result"]
+                if isinstance(result_data, dict) and "content" in result_data:
+                    content = result_data["content"]
+                    if isinstance(content, list) and len(content) > 0:
+                        return content[0].get("text", content[0]) if isinstance(content[0], dict) else content[0]
+                return result_data
+
+            return {}
+
+        except httpx.HTTPStatusError as e:
+            raise MCPError(f"MCP HTTP error {e.response.status_code}: {e}")
+        except Exception as e:
+            raise MCPError(f"MCP call error: {e}")
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+
+class WeatherMCP(StreamableHTTPMCPClient):
+    """
+    Weather MCP Server client using Streamable HTTP transport
+
+    Tools:
+        - get_cities: Get list of cities for a country
+        - get_weather: Get weather information for a city
+    """
+
+    def __init__(self, server_url: str):
+        super().__init__(server_url, "/weather")
+
+    def get_cities(self, country: str) -> Dict[str, Any]:
+        """
+        Get list of cities for a given country
+
+        Args:
+            country: Country name (e.g., "usa", "canada", "uk", "australia", "india", "portugal")
+
+        Returns:
+            Dict with list of cities for the country
+        """
+        return self._call_tool("get_cities", {"country": country})
+
+    def get_weather(self, city: str) -> Dict[str, Any]:
+        """
+        Get weather information for a given city
+
+        Args:
+            city: City name
+
+        Returns:
+            Dict with weather information including condition, temperature, humidity
+        """
+        return self._call_tool("get_weather", {"city": city})
+
+
+class OnCallMCP(StreamableHTTPMCPClient):
+    """
+    OnCall MCP Server client using Streamable HTTP transport
+
+    Tools:
+        - get_oncall_list: Get list of people currently on-call with their status and timezone
+    """
+
+    def __init__(self, server_url: str):
+        super().__init__(server_url, "/oncall")
+
+    def get_oncall_list(self) -> Dict[str, Any]:
+        """
+        Get list of people currently on-call with their status and timezone
+
+        Returns:
+            List of on-call personnel with id, firstName, lastName, alias, status, timezone
+        """
+        return self._call_tool("get_oncall_list", {})
+
+
+class ProductCatalogMCP(StreamableHTTPMCPClient):
+    """
+    Product Catalog MCP Server client using Streamable HTTP transport
+
+    Tools:
+        - get_products: Get list of products from catalog (optionally filtered by category)
+        - get_product_by_id: Get detailed information about a specific product
+        - search_products: Search for products by name or description
+    """
+
+    def __init__(self, server_url: str):
+        super().__init__(server_url, "/product-catalog")
+
+    def get_products(self, category: str = "all") -> Dict[str, Any]:
+        """
+        Get list of products from the catalog, optionally filtered by category
+
+        Args:
+            category: Product category ("all", "electronics", "furniture", "stationery")
+
+        Returns:
+            List of products with id, name, category, price, stock, description
+        """
+        return self._call_tool("get_products", {"category": category})
+
+    def get_product_by_id(self, product_id: int) -> Dict[str, Any]:
+        """
+        Get detailed information about a specific product by ID
+
+        Args:
+            product_id: Product ID
+
+        Returns:
+            Dict with detailed product information including specs
+        """
+        return self._call_tool("get_product_by_id", {"product_id": product_id})
+
+    def search_products(self, query: str) -> Dict[str, Any]:
+        """
+        Search for products by name or description
+
+        Args:
+            query: Search query string
+
+        Returns:
+            List of matching products
+        """
+        return self._call_tool("search_products", {"query": query})
+
+
+class GitHubMCP(StreamableHTTPMCPClient):
+    """
+    GitHub MCP Server client using Streamable HTTP transport
+
+    Tools:
+        - search_repositories: Search for GitHub repositories
+        - get_repository: Get details about a specific repository
+        - list_repository_issues: List issues for a repository
+        - get_repository_readme: Get README content for a repository
+        - list_repository_commits: List recent commits for a repository
+    """
+
+    def __init__(self, server_url: str):
+        super().__init__(server_url, "/github")
+
+    def search_repositories(self, query: str) -> Dict[str, Any]:
+        """
+        Search for GitHub repositories
+
+        Args:
+            query: Search query (e.g., "AI language:python", "machine learning")
+
+        Returns:
+            Dict with total_count and list of repository items
+        """
+        return self._call_tool("search_repositories", {"query": query})
+
+    def get_repository(self, owner: str, repo: str) -> Dict[str, Any]:
+        """
+        Get details about a specific repository
+
+        Args:
+            owner: Repository owner (e.g., "microsoft")
+            repo: Repository name (e.g., "vscode")
+
+        Returns:
+            Dict with repository details
+        """
+        return self._call_tool("get_repository", {"owner": owner, "repo": repo})
+
+    def list_repository_issues(self, owner: str, repo: str, state: str = "open") -> Dict[str, Any]:
+        """
+        List issues for a repository
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            state: Issue state ("open", "closed", or "all")
+
+        Returns:
+            List of repository issues
+        """
+        return self._call_tool("list_repository_issues", {"owner": owner, "repo": repo, "state": state})
+
+    def get_repository_readme(self, owner: str, repo: str) -> Dict[str, Any]:
+        """
+        Get README content for a repository
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+
+        Returns:
+            Dict with README content and metadata
+        """
+        return self._call_tool("get_repository_readme", {"owner": owner, "repo": repo})
+
+    def list_repository_commits(self, owner: str, repo: str, limit: int = 10) -> Dict[str, Any]:
+        """
+        List recent commits for a repository
+
+        Args:
+            owner: Repository owner
+            repo: Repository name
+            limit: Maximum number of commits to return (default: 10)
+
+        Returns:
+            List of recent commits
+        """
+        return self._call_tool("list_repository_commits", {"owner": owner, "repo": repo, "limit": limit})
+
+
+class SpotifyMCP(StreamableHTTPMCPClient):
+    """
+    Spotify MCP Server client using Streamable HTTP transport
+
+    Tools:
+        - search: Search for tracks, artists, albums, or playlists
+        - get_user_playlists: Get current user's playlists
+        - get_playlist_tracks: Get tracks from a specific playlist
+        - get_currently_playing: Get currently playing track
+        - get_playback_state: Get current playback state
+        - start_playback: Start or resume playback
+        - pause_playback: Pause playback
+        - skip_to_next: Skip to next track
+        - skip_to_previous: Skip to previous track
+        - get_track: Get detailed track information
+        - get_recommendations: Get track recommendations
+        - create_playlist: Create a new playlist
+    """
+
+    def __init__(self, server_url: str):
+        super().__init__(server_url, "/spotify")
+
+    def search(self, query: str, search_type: str = "track", limit: int = 10) -> Dict[str, Any]:
+        """
+        Search for tracks, artists, albums, or playlists
+
+        Args:
+            query: Search query string
+            search_type: Type of search ("track", "artist", "album", "playlist")
+            limit: Maximum number of results (default: 10)
+
+        Returns:
+            Search results
+        """
+        return self._call_tool("search", {"query": query, "search_type": search_type, "limit": limit})
+
+    def get_user_playlists(self, limit: int = 20) -> Dict[str, Any]:
+        """
+        Get current user's playlists
+
+        Args:
+            limit: Maximum number of playlists (default: 20)
+
+        Returns:
+            User's playlists
+        """
+        return self._call_tool("get_user_playlists", {"limit": limit})
+
+    def get_playlist_tracks(self, playlist_id: str, limit: int = 50) -> Dict[str, Any]:
+        """
+        Get tracks from a specific playlist
+
+        Args:
+            playlist_id: Spotify playlist ID
+            limit: Maximum number of tracks (default: 50)
+
+        Returns:
+            Playlist tracks
+        """
+        return self._call_tool("get_playlist_tracks", {"playlist_id": playlist_id, "limit": limit})
+
+    def get_currently_playing(self) -> Dict[str, Any]:
+        """Get the user's currently playing track"""
+        return self._call_tool("get_currently_playing", {})
+
+    def get_playback_state(self) -> Dict[str, Any]:
+        """Get information about the user's current playback state"""
+        return self._call_tool("get_playback_state", {})
+
+    def start_playback(self, uri: str = None) -> Dict[str, Any]:
+        """
+        Start or resume playback
+
+        Args:
+            uri: Optional Spotify URI to play
+
+        Returns:
+            Playback status
+        """
+        args = {"uri": uri} if uri else {}
+        return self._call_tool("start_playback", args)
+
+    def pause_playback(self) -> Dict[str, Any]:
+        """Pause playback"""
+        return self._call_tool("pause_playback", {})
+
+    def skip_to_next(self) -> Dict[str, Any]:
+        """Skip to next track"""
+        return self._call_tool("skip_to_next", {})
+
+    def skip_to_previous(self) -> Dict[str, Any]:
+        """Skip to previous track"""
+        return self._call_tool("skip_to_previous", {})
+
+    def get_track(self, track_id: str) -> Dict[str, Any]:
+        """
+        Get detailed information about a track
+
+        Args:
+            track_id: Spotify track ID
+
+        Returns:
+            Track information
+        """
+        return self._call_tool("get_track", {"track_id": track_id})
+
+    def get_recommendations(self, seed_artists: str = None, seed_tracks: str = None, limit: int = 20) -> Dict[str, Any]:
+        """
+        Get track recommendations based on seeds
+
+        Args:
+            seed_artists: Comma-separated artist IDs
+            seed_tracks: Comma-separated track IDs
+            limit: Number of recommendations (default: 20)
+
+        Returns:
+            Recommended tracks
+        """
+        args = {"limit": limit}
+        if seed_artists:
+            args["seed_artists"] = seed_artists
+        if seed_tracks:
+            args["seed_tracks"] = seed_tracks
+        return self._call_tool("get_recommendations", args)
+
+    def create_playlist(self, name: str, description: str = "", public: bool = True) -> Dict[str, Any]:
+        """
+        Create a new playlist
+
+        Args:
+            name: Playlist name
+            description: Playlist description (optional)
+            public: Whether playlist is public (default: True)
+
+        Returns:
+            Created playlist information
+        """
+        return self._call_tool("create_playlist", {"name": name, "description": description, "public": public})
+
+
+
+class PlaceOrderMCP(StreamableHTTPMCPClient):
+    """
+    Place Order MCP Server client using Streamable HTTP transport
+
+    Tools:
+        - place_order: Place an order for a product
+        - get_order_status: Get status of an order
+        - list_orders: List all orders
+        - cancel_order: Cancel an order
+        - update_order_status: Update order status
+    """
+
+    def __init__(self, server_url: str):
+        super().__init__(server_url, "/place-order")
+
+    def place_order(self, product_id: str, quantity: int, customer_email: str) -> Dict[str, Any]:
+        """
+        Place an order for a product
+
+        Args:
+            product_id: Product ID to order
+            quantity: Quantity to order
+            customer_email: Customer email address
+
+        Returns:
+            Order details
+        """
+        return self._call_tool("place_order", {
+            "product_id": product_id,
+            "quantity": quantity,
+            "customer_email": customer_email
+        })
+
+    def get_order_status(self, order_id: str) -> Dict[str, Any]:
+        """
+        Get status of an order
+
+        Args:
+            order_id: Order ID to check
+
+        Returns:
+            Order status and details
+        """
+        return self._call_tool("get_order_status", {"order_id": order_id})
+
+    def list_orders(self, customer_email: str = None) -> Dict[str, Any]:
+        """
+        List all orders, optionally filtered by customer email
+
+        Args:
+            customer_email: Optional customer email to filter by
+
+        Returns:
+            List of orders
+        """
+        args = {}
+        if customer_email:
+            args["customer_email"] = customer_email
+        return self._call_tool("list_orders", args)
+
+    def cancel_order(self, order_id: str) -> Dict[str, Any]:
+        """
+        Cancel an order
+
+        Args:
+            order_id: Order ID to cancel
+
+        Returns:
+            Cancellation result
+        """
+        return self._call_tool("cancel_order", {"order_id": order_id})
+
+    def update_order_status(self, order_id: str, new_status: str) -> Dict[str, Any]:
+        """
+        Update order status
+
+        Args:
+            order_id: Order ID to update
+            new_status: New status (pending, processing, shipped, delivered, cancelled)
+
+        Returns:
+            Update result
+        """
+        return self._call_tool("update_order_status", {
+            "order_id": order_id,
+            "new_status": new_status
+        })
+
+
+
+class MSLearnMCP(StreamableHTTPMCPClient):
+    """
+    Microsoft Learn Documentation Search MCP Server client
+    Uses Streamable HTTP transport for MCP protocol communication
+
+    Tools:
+        - search_docs: Search Microsoft Learn documentation
+        - get_article: Get specific Microsoft Learn article
+        - list_categories: List documentation categories
+    """
+
+    def __init__(self, server_url: str):
+        """
+        Initialize MS Learn MCP client
+
+        Args:
+            server_url: Base URL of the MS Learn MCP server
+        """
+        super().__init__(server_url, "/ms-learn")
+
+    def search_docs(self, query: str, limit: int = 10) -> Dict[str, Any]:
+        """
+        Search Microsoft Learn documentation
+
+        Args:
+            query: Search query string
+            limit: Maximum number of results to return (default: 10)
+
+        Returns:
+            Dict containing search results
+
+        Example:
+            >>> ms_learn = MSLearnMCP("https://mcp-ms-learn.example.com")
+            >>> results = ms_learn.search_docs("Azure AI", limit=5)
+        """
+        return self._call_tool('search_docs', {
+            'query': query,
+            'limit': limit
+        })
+
+    def get_article(self, article_url: str) -> Dict[str, Any]:
+        """
+        Get specific Microsoft Learn article content
+
+        Args:
+            article_url: URL or ID of the article
+
+        Returns:
+            Dict containing article content
+
+        Example:
+            >>> ms_learn = MSLearnMCP("https://mcp-ms-learn.example.com")
+            >>> article = ms_learn.get_article("azure/ai-services/openai")
+        """
+        return self._call_tool('get_article', {
+            'article_url': article_url
+        })
+
+    def list_categories(self) -> Dict[str, Any]:
+        """
+        List available documentation categories
+
+        Returns:
+            Dict containing categories list
+
+        Example:
+            >>> ms_learn = MSLearnMCP("https://mcp-ms-learn.example.com")
+            >>> categories = ms_learn.list_categories()
+        """
+        return self._call_tool('list_categories', {})
+
+class MemoryMCP:
+    """Memory MCP Server client - persistent memory storage"""
+
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self._request_id = 0
+
+    def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal method to call Memory MCP tools"""
+        response = httpx.post(
+            f"{self.server_url}/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            },
+            timeout=30.0
+        )
+        response.raise_for_status()
+        result = response.json()
+        if "error" in result:
+            raise MCPError(f"Memory MCP Error: {result['error']}")
+        return result.get("result", {})
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+    def store(self, key: str, value: str) -> Dict[str, Any]:
+        """Store a key-value pair in memory"""
+        return self._call("store_memory", {"key": key, "value": value})
+
+    def recall(self, key: str) -> Dict[str, Any]:
+        """Recall a value from memory"""
+        return self._call("recall_memory", {"key": key})
+
+    def list_all(self) -> Dict[str, Any]:
+        """List all stored memories"""
+        return self._call("list_memories", {})
+
+
+class SequentialThinkingMCP:
+    """Sequential Thinking MCP Server client - structured problem solving"""
+
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self._request_id = 0
+
+    def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal method to call Sequential Thinking MCP tools"""
+        response = httpx.post(
+            f"{self.server_url}/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            },
+            timeout=60.0  # Longer timeout for complex thinking
+        )
+        response.raise_for_status()
+        result = response.json()
+        if "error" in result:
+            raise MCPError(f"Sequential Thinking MCP Error: {result['error']}")
+        return result.get("result", {})
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+    def solve_problem(self, problem: str, thinking_budget: int = 10) -> Dict[str, Any]:
+        """
+        Solve a complex problem with sequential thinking
+
+        Args:
+            problem: Problem description
+            thinking_budget: Number of thinking steps (default 10)
+        """
+        return self._call("create_sequential_thinking", {
+            "problem": problem,
+            "thinking_budget": thinking_budget
+        })
+
+
+class DeepWikiMCP:
+    """DeepWiki MCP Server client - GitHub repository analysis"""
+
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self._request_id = 0
+
+    def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal method to call DeepWiki MCP tools"""
+        response = httpx.post(
+            f"{self.server_url}/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            },
+            timeout=30.0
+        )
+        response.raise_for_status()
+        result = response.json()
+        if "error" in result:
+            raise MCPError(f"DeepWiki MCP Error: {result['error']}")
+        return result.get("result", {})
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+    def analyze_repository(self, repo_url: str) -> Dict[str, Any]:
+        """Analyze a GitHub repository structure and documentation"""
+        return self._call("analyze_repo", {"repo_url": repo_url})
+
+    def get_repo_docs(self, owner: str, repo: str) -> Dict[str, Any]:
+        """Get documentation for a repository"""
+        return self._call("get_docs", {"owner": owner, "repo": repo})
+
+
+class MicrosoftDocsMCP:
+    """Microsoft Docs MCP Server client - search Microsoft documentation"""
+
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self._request_id = 0
+
+    def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal method to call Microsoft Docs MCP tools"""
+        response = httpx.post(
+            f"{self.server_url}/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            },
+            timeout=30.0
+        )
+        response.raise_for_status()
+        result = response.json()
+        if "error" in result:
+            raise MCPError(f"Microsoft Docs MCP Error: {result['error']}")
+        return result.get("result", {})
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+    def search(self, query: str, product: Optional[str] = None) -> Dict[str, Any]:
+        """Search Microsoft documentation"""
+        args = {"query": query}
+        if product:
+            args["product"] = product
+        return self._call("search_docs", args)
+
+
+class AzureFoundryMCP:
+    """Azure AI Foundry MCP Server client - AI model operations"""
+
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self._request_id = 0
+
+    def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal method to call Azure Foundry MCP tools"""
+        response = httpx.post(
+            f"{self.server_url}/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            },
+            timeout=30.0
+        )
+        response.raise_for_status()
+        result = response.json()
+        if "error" in result:
+            raise MCPError(f"Azure Foundry MCP Error: {result['error']}")
+        return result.get("result", {})
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+    def list_models(self) -> Dict[str, Any]:
+        """List available AI models"""
+        return self._call("list_models", {})
+
+    def get_model_info(self, model_id: str) -> Dict[str, Any]:
+        """Get information about a specific model"""
+        return self._call("get_model", {"model_id": model_id})
+
+
+class PlaywrightMCP:
+    """Playwright MCP Server client - browser automation"""
+
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self._request_id = 0
+
+    def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal method to call Playwright MCP tools"""
+        response = httpx.post(
+            f"{self.server_url}/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            },
+            timeout=60.0  # Longer timeout for browser operations
+        )
+        response.raise_for_status()
+        result = response.json()
+        if "error" in result:
+            raise MCPError(f"Playwright MCP Error: {result['error']}")
+        return result.get("result", {})
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+    def navigate(self, url: str) -> Dict[str, Any]:
+        """Navigate to a URL"""
+        return self._call("playwright_navigate", {"url": url})
+
+    def screenshot(self, url: str) -> Dict[str, Any]:
+        """Take a screenshot of a webpage"""
+        return self._call("playwright_screenshot", {"url": url})
+
+    def click(self, selector: str) -> Dict[str, Any]:
+        """Click an element on the page"""
+        return self._call("playwright_click", {"selector": selector})
+
+
+class PuppeteerMCP:
+    """Puppeteer MCP Server client - browser automation"""
+
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self._request_id = 0
+
+    def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal method to call Puppeteer MCP tools"""
+        response = httpx.post(
+            f"{self.server_url}/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            },
+            timeout=60.0  # Longer timeout for browser operations
+        )
+        response.raise_for_status()
+        result = response.json()
+        if "error" in result:
+            raise MCPError(f"Puppeteer MCP Error: {result['error']}")
+        return result.get("result", {})
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+    def navigate(self, url: str) -> Dict[str, Any]:
+        """Navigate to a URL"""
+        return self._call("puppeteer_navigate", {"url": url})
+
+    def scrape(self, url: str, selector: Optional[str] = None) -> Dict[str, Any]:
+        """Scrape content from a webpage"""
+        args = {"url": url}
+        if selector:
+            args["selector"] = selector
+        return self._call("puppeteer_scrape", args)
+
+
+class FetchMCP:
+    """Fetch MCP Server client - web content fetching"""
+
+    def __init__(self, server_url: str):
+        self.server_url = server_url
+        self._request_id = 0
+
+    def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
+        """Internal method to call Fetch MCP tools"""
+        response = httpx.post(
+            f"{self.server_url}/mcp/",
+            json={
+                "jsonrpc": "2.0",
+                "id": self._next_id(),
+                "method": "tools/call",
+                "params": {
+                    "name": tool_name,
+                    "arguments": arguments
+                }
+            },
+            timeout=30.0
+        )
+        response.raise_for_status()
+        result = response.json()
+        if "error" in result:
+            raise MCPError(f"Fetch MCP Error: {result['error']}")
+        return result.get("result", {})
+
+    def _next_id(self) -> int:
+        self._request_id += 1
+        return self._request_id
+
+    def fetch_url(self, url: str) -> Dict[str, Any]:
+        """Fetch content from a URL"""
+        return self._call("fetch", {"url": url})
+
+    def fetch_as_markdown(self, url: str) -> Dict[str, Any]:
+        """Fetch content and convert to markdown"""
+        return self._call("fetch_markdown", {"url": url})
+
+
+class MCPError(Exception):
+    """Exception raised for MCP errors"""
+    pass
+
+
+# Convenience functions for quick usage
+def quick_mcp_client() -> MCPClient:
+    """Create a quick MCP client with default config"""
+    return MCPClient()
+
+
+def display_chart(chart_result: Dict[str, Any]):
+    """
+    Display a chart from Excel Analytics MCP result
+
+    Args:
+        chart_result: Result from generate_chart()
+    """
+    import base64
+    from IPython.display import Image, display
+
+    if "image_base64" in chart_result:
+        img_data = base64.b64decode(chart_result["image_base64"])
+        display(Image(data=img_data))
+    else:
+        print("No chart image found in result")
+
+
+def display_sales_analysis(analysis_result: Dict[str, Any]):
+    """
+    Display sales analysis results as a formatted table
+
+    Args:
+        analysis_result: Result from analyze_sales()
+    """
+    import pandas as pd
+    from IPython.display import display
+
+    if "analysis" in analysis_result:
+        df = pd.DataFrame(analysis_result["analysis"])
+        print(f"\n📊 Sales Analysis Summary")
+        print(f"   Total: ${analysis_result['summary']['total']:,.2f}")
+        print(f"   Average: ${analysis_result['summary']['average']:,.2f}")
+        print(f"   Count: {analysis_result['summary']['count']}\n")
+        display(df)
+    else:
+        print("No analysis data found in result")
+
+
+def display_document_search(search_result: Dict[str, Any]):
+    """
+    Display document search results
+
+    Args:
+        search_result: Result from search_documents()
+    """
+    if "results" in search_result:
+        print(f"\n🔍 Found {search_result['results_count']} documents matching '{search_result['query']}':\n")
+
+        for i, doc in enumerate(search_result["results"], 1):
+            print(f"{i}. 📄 {doc['file_name']}")
+            print(f"   Matches: {doc['match_count']}")
+            print(f"   Context: {doc['context'][:100]}...")
+            print()
+    else:
+        print("No search results found")
+
+
+# Example usage template
+EXAMPLE_USAGE = """
+# Example: Using MCP Helpers in Jupyter Notebook
+
+from notebook_mcp_helpers import MCPClient, display_chart, display_sales_analysis
+
+# Initialize MCP client
+mcp = MCPClient()
+
+# Analyze sales data
+sales_result = mcp.excel.analyze_sales(
+    file_path="/app/data/sales_performance.xlsx",
+    group_by="Region",
+    metric="TotalSales"
+)
+
+# Display results
+display_sales_analysis(sales_result)
+
+# Generate and display chart
+chart_result = mcp.excel.generate_chart(
+    file_path="/app/data/sales_performance.xlsx",
+    chart_type="bar",
+    x_column="Region",
+    y_column="TotalSales"
+)
+
+display_chart(chart_result)
+
+# Search documents
+search_result = mcp.docs.search_documents(query="Azure OpenAI")
+display_document_search(search_result)
+"""
+
+if __name__ == "__main__":
+    print("MCP Helper Functions for Jupyter Notebooks")
+    print("=" * 50)
+    print(EXAMPLE_USAGE)
+
+
+# Azure OpenAI Integration Functions
+import os
+async def call_azure_openai(prompt: str, system_message: str = "You are a helpful data analyst.") -> str:
+    """
+    Call Azure OpenAI through APIM Gateway
+    
+    Args:
+        prompt: User prompt/question
+        system_message: System context for the AI
+        
+    Returns:
+        AI-generated response text
+    """
+    import httpx
+    
+    # Get configuration from environment
+    APIM_ENDPOINT = os.getenv('APIM_GATEWAY_URL', 'https://apim-mcp-gateway-xxxxxx.azure-api.net')
+    APIM_KEY = os.getenv('APIM_SUBSCRIPTION_KEY', os.getenv('AZURE_OPENAI_KEY', 'your-subscription-key'))
+    DEPLOYMENT_NAME = os.getenv('AZURE_OPENAI_DEPLOYMENT_GPT4O', 'gpt-4o')
+    
+    url = f"{APIM_ENDPOINT}/openai/deployments/{DEPLOYMENT_NAME}/chat/completions?api-version=2024-08-01-preview"
+    
+    headers = {
+        "Content-Type": "application/json",
+        "Ocp-Apim-Subscription-Key": APIM_KEY,
+        "api-key": APIM_KEY  # Fallback for direct Azure OpenAI
+    }
+    
+    payload = {
+        "messages": [
+            {"role": "system", "content": system_message},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.7,
+        "max_tokens": 2000
+    }
+    
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        result = response.json()
+        return result["choices"][0]["message"]["content"]

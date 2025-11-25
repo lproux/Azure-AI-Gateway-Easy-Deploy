@@ -1,0 +1,87 @@
+<policies>
+    <inbound>
+        <base />
+
+        <!-- Capture session ID from header or generate new one -->
+        <set-variable name="sessionId" value="@(context.Request.Headers.GetValueOrDefault("x-session-id", Guid.NewGuid().ToString()))" />
+        <set-variable name="requestTimestamp" value="@(DateTime.UtcNow.ToString("o"))" />
+        <set-variable name="requestBody" value="@(context.Request.Body.As<string>(preserveContent: true))" />
+
+        <!-- Configure backend -->
+        <set-backend-service backend-id="inference-backend-pool" />
+    </inbound>
+
+    <backend>
+        <!-- Retry logic for load balancing -->
+        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || (context.Response.StatusCode == 503 && !context.Response.StatusReason.Contains("Backend pool") && !context.Response.StatusReason.Contains("is temporarily unavailable")))">
+            <forward-request buffer-request-body="true" />
+        </retry>
+    </backend>
+
+    <outbound>
+        <base />
+
+        <!-- Store message in Cosmos DB (only on success) -->
+        <choose>
+            <when condition="@(context.Response.StatusCode == 200)">
+                <!-- Get Cosmos DB access token -->
+                <authentication-managed-identity resource="https://cosmos.azure.com" output-token-variable-name="cosmosToken" ignore-error="true" />
+
+                <!-- Capture response -->
+                <set-variable name="responseBody" value="@(context.Response.Body.As<string>(preserveContent: true))" />
+
+                <!-- Build message document using JObject (safer than string concatenation) -->
+                <set-variable name="messageDoc" value="@{
+                    var sessionId = context.Variables.GetValueOrDefault<string>("sessionId", "");
+                    var requestTime = context.Variables.GetValueOrDefault<string>("requestTimestamp", "");
+                    var reqBody = context.Variables.GetValueOrDefault<string>("requestBody", "");
+                    var respBody = context.Variables.GetValueOrDefault<string>("responseBody", "");
+                    var messageId = Guid.NewGuid().ToString();
+
+                    var doc = new JObject();
+                    doc["id"] = messageId;
+                    doc["sessionId"] = sessionId;
+                    doc["timestamp"] = requestTime;
+                    doc["statusCode"] = 200;
+                    doc["requestBody"] = reqBody.Substring(0, Math.Min(1000, reqBody.Length));
+                    doc["responseBody"] = respBody.Substring(0, Math.Min(1000, respBody.Length));
+
+                    return doc.ToString(Newtonsoft.Json.Formatting.None);
+                }" />
+
+                <!-- Store in Cosmos DB (ignore errors to not break the response) -->
+                <send-request mode="new" response-variable-name="cosmosResponse" timeout="3" ignore-error="true">
+                    <set-url>{{CosmosEndpoint}}/dbs/messages-db/colls/conversations/docs</set-url>
+                    <set-method>POST</set-method>
+                    <set-header name="Content-Type" exists-action="override">
+                        <value>application/json</value>
+                    </set-header>
+                    <set-header name="x-ms-version" exists-action="override">
+                        <value>2018-12-31</value>
+                    </set-header>
+                    <set-header name="x-ms-documentdb-partitionkey" exists-action="override">
+                        <value>@($"[\"{context.Variables["sessionId"]}\"]")</value>
+                    </set-header>
+                    <set-header name="Authorization" exists-action="override">
+                        <value>@{
+                            var token = context.Variables.GetValueOrDefault<string>("cosmosToken", "");
+                            return string.IsNullOrEmpty(token) ? "" : $"type=aad&ver=1.0&sig={token}";
+                        }</value>
+                    </set-header>
+                    <set-body>@((string)context.Variables["messageDoc"])</set-body>
+                </send-request>
+            </when>
+        </choose>
+    </outbound>
+
+    <on-error>
+        <base />
+        <choose>
+            <when condition="@(context.Response.StatusCode == 503)">
+                <return-response>
+                    <set-status code="503" reason="Service Unavailable" />
+                </return-response>
+            </when>
+        </choose>
+    </on-error>
+</policies>

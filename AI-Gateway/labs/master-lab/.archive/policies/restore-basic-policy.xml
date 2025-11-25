@@ -1,0 +1,18 @@
+<policies>
+    <inbound>
+        <base />
+        <check-header name="api-key" failed-check-httpcode="401" failed-check-error-message="Missing or invalid API key" />
+        <set-backend-service backend-id="inference-backend-pool" />
+    </inbound>
+    <backend>
+        <retry count="2" interval="0" first-fast-retry="true" condition="@(context.Response.StatusCode == 429 || context.Response.StatusCode == 503)">
+            <forward-request buffer-request-body="true" />
+        </retry>
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

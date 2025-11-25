@@ -1,0 +1,15 @@
+<fragment>
+    <!--
+    Token Rate Limiting Fragment
+    Enforces token-per-minute (TPM) limits on Azure OpenAI requests
+    to prevent quota exhaustion and enable fair usage.
+    -->
+    <azure-openai-token-limit
+        tokens-per-minute="{{{{named-value-config-token-ratelimit-tpm}}}}"
+        counter-key="@(context.Subscription?.Id ?? context.Request.IpAddress)"
+        estimate-prompt-tokens="true"
+        tokens-consumed-header-name="x-tokens-consumed"
+        remaining-tokens-header-name="x-tokens-remaining"
+        retry-after-header-name="Retry-After"
+        retry-after-variable-name="retry-after" />
+</fragment>

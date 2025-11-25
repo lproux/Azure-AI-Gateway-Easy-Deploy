@@ -1,0 +1,23 @@
+<fragment>
+    <!--
+    Semantic Caching Fragment
+    Implements semantic caching using Azure Redis to reduce
+    latency and backend costs for similar prompts.
+
+    NOTE: This fragment requires both inbound and outbound sections.
+    The inbound section checks the cache, the outbound section stores results.
+    -->
+
+    <!-- INBOUND: Check semantic cache for similar prompts -->
+    <azure-openai-semantic-cache-lookup
+        score-threshold="{{{{named-value-config-cache-score-threshold}}}}"
+        embeddings-backend-id="{{{{named-value-config-cache-embeddings-backend}}}}"
+        embeddings-backend-auth="{{{{named-value-config-cache-embeddings-auth}}}}"
+        ignore-system-messages="true"
+        max-message-count="10">
+        <vary-by>@(context.Subscription?.Id ?? "default")</vary-by>
+    </azure-openai-semantic-cache-lookup>
+
+    <!-- OUTBOUND: Store response in semantic cache -->
+    <azure-openai-semantic-cache-store duration="{{{{named-value-config-cache-duration-seconds}}}}" />
+</fragment>

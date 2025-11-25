@@ -1,0 +1,100 @@
+{
+  "version": "1.0.0",
+  "description": "Azure API Management service configuration",
+  "apim": {
+    "subscription_id": "${AZURE_SUBSCRIPTION_ID}",
+    "resource_group": "lab-fragment-policies",
+    "service_name": "${APIM_SERVICE_NAME}",
+    "location": "uksouth",
+    "sku": "Basicv2"
+  },
+  "api": {
+    "api_id": "azure-openai-api",
+    "display_name": "Azure OpenAI API",
+    "path": "inference",
+    "service_url": "${BACKEND_SERVICE_URL}",
+    "protocols": ["https"],
+    "api_version": "2025-03-01-preview"
+  },
+  "subscriptions": [
+    {
+      "name": "subscription1",
+      "display_name": "Subscription 1",
+      "scope": "api"
+    },
+    {
+      "name": "subscription2",
+      "display_name": "Subscription 2 - Testing",
+      "scope": "api"
+    }
+  ],
+  "backends": {
+    "openai-backend-pool": {
+      "type": "pool",
+      "description": "Load-balanced backend pool for Azure OpenAI",
+      "backends": [
+        {
+          "id": "openai-backend-1",
+          "url": "${OPENAI_ENDPOINT_1}",
+          "priority": 1,
+          "weight": 100
+        },
+        {
+          "id": "openai-backend-2",
+          "url": "${OPENAI_ENDPOINT_2}",
+          "priority": 2,
+          "weight": 50
+        },
+        {
+          "id": "openai-backend-3",
+          "url": "${OPENAI_ENDPOINT_3}",
+          "priority": 2,
+          "weight": 50
+        }
+      ]
+    },
+    "openai-private-backend": {
+      "type": "single",
+      "description": "Private endpoint backend for Azure OpenAI",
+      "url": "${OPENAI_PRIVATE_ENDPOINT}",
+      "credentials": {
+        "authentication": "managed-identity"
+      }
+    },
+    "openai-embeddings-backend": {
+      "type": "single",
+      "description": "Embeddings backend for semantic caching",
+      "url": "${OPENAI_EMBEDDINGS_ENDPOINT}"
+    }
+  },
+  "named_values": {
+    "config-token-metrics-namespace": "openai",
+    "config-lb-backend-pool-id": "openai-backend-pool",
+    "config-lb-retry-count": "2",
+    "config-token-ratelimit-tpm": "100",
+    "config-private-backend-id": "openai-private-backend",
+    "config-cache-duration-seconds": "300",
+    "config-cache-score-threshold": "0.8",
+    "config-cache-embeddings-backend": "openai-embeddings-backend",
+    "config-cache-embeddings-auth": "subscription-key",
+    "config-circuit-error-threshold": "5",
+    "config-circuit-timeout-seconds": "60",
+    "config-circuit-window-seconds": "120"
+  },
+  "monitoring": {
+    "application_insights": {
+      "enabled": true,
+      "sampling_percentage": 100,
+      "log_level": "Information"
+    },
+    "diagnostics": {
+      "enabled": true,
+      "log_analytics_workspace": "${LOG_ANALYTICS_WORKSPACE_ID}"
+    }
+  },
+  "cache": {
+    "type": "external",
+    "connection_string": "${REDIS_CONNECTION_STRING}",
+    "use_from_location": "default"
+  }
+}

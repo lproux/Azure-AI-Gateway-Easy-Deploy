@@ -1,0 +1,9 @@
+name: branch_protection
+description: Default branch protection policy
+resource: repository
+where: 
+configuration:
+  branchProtectionRules:
+  - branchNamePattern: main
+    requiredApprovingReviewsCount: 1
+    requireCodeOwnersReview: true

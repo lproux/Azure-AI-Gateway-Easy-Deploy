@@ -1,0 +1,12 @@
+- name: 'Microsoft MCP Servers (Internal and External)'
+  href: index.md
+- name: 'How to Build a Remote MCP Server'
+  href: mcp-httpserver.md
+- name: 'MCP Security'
+  href: building-secure-mcp.md
+- name: 'Publishing an MCP Server'
+  href: publishing-an-mcp-server.md
+- name: 'Sponsoring an MCP Server'
+  href: sponsoring-an-mcp-server.md
+- name: 'Changelog'
+  href: mcp-changelog.md

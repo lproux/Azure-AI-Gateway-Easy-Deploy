@@ -1,0 +1,11 @@
+- name: AI Guidance for Microsoft Developers
+  href: index.md
+- name: Detailed AI Dev Tool Guidance
+  href: guidance.md
+- name: GitHub Copilot CELA Guidelines
+  href: github-copilot-guidelines.md
+- name: GitHub Copilot FAQ
+  href: github-copilot-faq.md
+- name: 'Microsoft MCP Servers (Internal and External)'
+  href: mcp/index.md
+  topicHref: mcp/index.md

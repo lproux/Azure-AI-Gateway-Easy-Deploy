@@ -1,0 +1,57 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+.venv/
+.venv-*/
+venv/
+ENV/
+env/
+*.egg-info/
+dist/
+build/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Azure
+.azure/
+*.env
+!*.env.template
+master-lab.env
+.azure-credentials.env
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+project-execution-logs/
+
+# Cache
+.cache/
+*.cache
+
+# Archives
+.archive/
+
+# Test outputs
+test-report.json
+
+# MCP config (contains paths)
+.mcp-servers-config
+
+# Temporary files
+*.tmp
+*.bak

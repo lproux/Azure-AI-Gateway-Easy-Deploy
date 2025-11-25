@@ -1,0 +1,61 @@
+# Test 6: Semantic Kernel Configuration
+print("\n[6/7] Semantic Kernel Configuration Test")
+print("-" * 80)
+try:
+    from semantic_kernel import Kernel
+    from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, AzureChatPromptExecutionSettings
+    from semantic_kernel.contents import ChatHistory
+    
+    kernel = Kernel()
+    service_id = "diagnostic_test"
+    
+    # Add Azure OpenAI service
+    service = AzureChatCompletion(
+        service_id=service_id,
+        endpoint=apim_gateway_url,
+        api_key=apim_api_key,
+        deployment_name="gpt-4o-mini",
+        api_version="2024-08-01-preview"
+    )
+    kernel.add_service(service)
+    
+    print(f"✅ Kernel created successfully")
+    print(f"   Service ID: {service_id}")
+    print(f"   Endpoint: {apim_gateway_url}")
+    print("   Attempting simple prompt with 30s timeout...")
+    
+    async def test_sk_prompt():
+        # FIXED: Use get_chat_message_content() instead of invoke_prompt()
+        # FIXED: Use ChatHistory instead of prompt_template
+        # FIXED: Use AzureChatPromptExecutionSettings instead of dict
+        
+        chat_history = ChatHistory()
+        chat_history.add_user_message("Reply with just 'SK OK'")
+        
+        settings = AzureChatPromptExecutionSettings(
+            max_tokens=5
+        )
+        
+        result = await service.get_chat_message_content(
+            chat_history=chat_history,
+            settings=settings
+        )
+        return str(result)
+    
+    try:
+        result = await asyncio.wait_for(test_sk_prompt(), timeout=30.0)
+        print(f"✅ Semantic Kernel prompt works: '{result}'")
+    except TimeoutError:
+        print(f"❌ Semantic Kernel TIMED OUT after 30s")
+        print("   This indicates SK is hanging on basic prompts")
+        print("   Likely causes:")
+        print("     - SK version incompatibility")
+        print("     - Incorrect endpoint configuration")
+        print("     - APIM policy blocking requests")
+    
+except ImportError as e:
+    print(f"❌ Semantic Kernel not installed: {str(e)}")
+except Exception as e:
+    print(f"❌ Semantic Kernel test failed: {type(e).__name__}: {str(e)[:100]}")
+    import traceback
+    traceback.print_exc()

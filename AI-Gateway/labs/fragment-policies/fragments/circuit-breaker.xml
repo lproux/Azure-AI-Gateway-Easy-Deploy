@@ -1,0 +1,62 @@
+<fragment>
+    <!--
+    Circuit Breaker Fragment
+    Implements circuit breaker pattern to prevent cascading failures
+    when backends are experiencing issues.
+    -->
+
+    <!-- Track failures in cache -->
+    <cache-lookup-value key="circuit-breaker-failures" variable-name="circuit-failures" />
+    <cache-lookup-value key="circuit-breaker-open-until" variable-name="circuit-open-until" />
+
+    <!-- Check if circuit is open -->
+    <choose>
+        <when condition="@{
+            var openUntil = context.Variables.GetValueOrDefault<DateTime?>(&quot;circuit-open-until&quot;, null);
+            return openUntil.HasValue &amp;&amp; openUntil.Value > DateTime.UtcNow;
+        }">
+            <return-response>
+                <set-status code="503" reason="Service Temporarily Unavailable - Circuit Breaker Open" />
+                <set-header name="Retry-After" exists-action="override">
+                    <value>@{
+                        var openUntil = context.Variables.GetValueOrDefault<DateTime?>(&quot;circuit-open-until&quot;, DateTime.UtcNow);
+                        return ((int)(openUntil - DateTime.UtcNow).TotalSeconds).ToString();
+                    }</value>
+                </set-header>
+                <set-body>@{
+                    return new JObject(
+                        new JProperty("error", new JObject(
+                            new JProperty("code", "circuit_breaker_open"),
+                            new JProperty("message", "Service is temporarily unavailable. Circuit breaker is open due to repeated failures."),
+                            new JProperty("retry_after", context.Response.Headers.GetValueOrDefault("Retry-After", "60"))
+                        ))
+                    ).ToString();
+                }</set-body>
+            </return-response>
+        </when>
+    </choose>
+
+    <!-- ON-ERROR: Increment failure counter and potentially open circuit -->
+    <on-error>
+        <choose>
+            <when condition="@(context.Response.StatusCode >= 500 || context.Response.StatusCode == 429)">
+                <cache-lookup-value key="circuit-breaker-failures" variable-name="current-failures" />
+                <set-variable name="failure-count" value="@{
+                    var current = context.Variables.GetValueOrDefault<int>(&quot;current-failures&quot;, 0);
+                    return current + 1;
+                }" />
+                <cache-store-value key="circuit-breaker-failures" value="@((int)context.Variables[&quot;failure-count&quot;])" duration="{{{{named-value-config-circuit-window-seconds}}}}" />
+
+                <!-- Open circuit if threshold exceeded -->
+                <choose>
+                    <when condition="@((int)context.Variables[&quot;failure-count&quot;] >= int.Parse(&quot;{{{{named-value-config-circuit-error-threshold}}}}&quot;))">
+                        <cache-store-value
+                            key="circuit-breaker-open-until"
+                            value="@(DateTime.UtcNow.AddSeconds(int.Parse(&quot;{{{{named-value-config-circuit-timeout-seconds}}}}&quot;)))"
+                            duration="{{{{named-value-config-circuit-timeout-seconds}}}}" />
+                    </when>
+                </choose>
+            </when>
+        </choose>
+    </on-error>
+</fragment>

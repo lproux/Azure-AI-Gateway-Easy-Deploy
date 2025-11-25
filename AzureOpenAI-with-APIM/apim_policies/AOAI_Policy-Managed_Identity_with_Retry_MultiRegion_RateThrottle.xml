@@ -1,0 +1,48 @@
+<policies>
+    <inbound>
+        <base />
+        <set-backend-service backend-id="aoai-primary-backend" />
+        <authentication-managed-identity resource="https://cognitiveservices.azure.com" />
+        <!-- Apply rate limiting -->
+        <choose>
+            <!-- If User A associated with the Subscription used to authorize access -->
+            <when condition="@(context.User.Id == "1")">
+                <rate-limit-by-key calls="5" renewal-period="60"
+                                   counter-key="@(context.User.Id)"
+                                   remaining-calls-variable-name="remainingCallsPerSubscriptionA" />
+            </when>
+            <!-- If User B associated with the Subscription used to authorize access -->
+            <when condition="@(context.User.Id == "2")">
+                <rate-limit-by-key calls="10" renewal-period="60"
+                                   counter-key="@(context.User.Id)"
+                                   remaining-calls-variable-name="remainingCallsPerSubscriptionB" />
+            </when>
+            <!-- Default Rate Limit for Other Users -->
+            <otherwise>
+                <rate-limit-by-key calls="3" renewal-period="60"
+                                   counter-key="@(context.User.Id)"
+                                   remaining-calls-variable-name="remainingCallsPerOtherSubscriptions" />
+            </otherwise>
+        </choose>
+    </inbound>
+    <backend>
+        <retry
+            condition="@(context.Response.StatusCode == 429 || context.Response.StatusCode >= 500)"
+            count="5" interval="1" delta="1" max-interval="8" first-fast-retry="false">
+            <!-- Failover logic below - uncomment to retry on secondary backend -->
+            <choose>
+                <when
+                    condition="@(context.Response.StatusCode == 429 || context.Response.StatusCode >= 500)">
+                    <set-backend-service backend-id="aoai-secondary-backend" />
+                </when>
+            </choose>
+            <forward-request buffer-request-body="true" />
+        </retry>
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

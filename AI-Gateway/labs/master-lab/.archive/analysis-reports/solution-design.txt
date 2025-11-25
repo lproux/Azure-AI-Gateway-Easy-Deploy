@@ -1,0 +1,86 @@
+
+=== AGGREGATED MCP INITIALIZATION SOLUTION ===
+
+PROBLEM SUMMARY:
+1. Final notebook Cell 9 looks for env vars (GITHUB_MCP_URL, etc.) that don't exist
+2. Actual URLs are in master-lab.env with different names (MCP_SERVER_GITHUB_URL)
+3. .mcp-servers-config is incomplete - missing GITHUB, PRODUCT_CATALOG, PLACE_ORDER, MS_LEARN
+
+SOLUTION DESIGN:
+
+Step 1: Update .mcp-servers-config file
+Add these lines from master-lab.env:
+GITHUB_MCP_URL=https://mcp-github-pavavy6pu5.ambitiousfield-f6abdfb4.uksouth.azurecontainerapps.io
+PRODUCT_CATALOG_MCP_URL=https://mcp-product-catalog-pavavy6pu5.ambitiousfield-f6abdfb4.uksouth.azurecontainerapps.io
+PLACE_ORDER_MCP_URL=https://mcp-place-order-pavavy6pu5.ambitiousfield-f6abdfb4.uksouth.azurecontainerapps.io
+MS_LEARN_MCP_URL=https://mcp-ms-learn-pavavy6pu5.ambitiousfield-f6abdfb4.uksouth.azurecontainerapps.io
+
+Note: Keep existing EXCEL_MCP_URL and DOCS_MCP_URL (from container instances)
+Update: WEATHER_MCP_URL, ONCALL_MCP_URL, SPOTIFY_MCP_URL to use container apps URLs
+
+Step 2: Replace Cell 9 Initialization
+Replace the env-variable based initialization with MCPClient():
+
+```python
+# MCP Client Initialization (Consolidated)
+import sys
+sys.path.append('.')
+
+from notebook_mcp_helpers import MCPClient, MCPError
+
+# Check if already initialized
+if 'mcp' in globals() and hasattr(mcp, 'github'):
+    print("⚠️  MCP Client already initialized. Skipping re-initialization.")
+    print(f"   Excel: {mcp.excel.server_url}")
+    print(f"   Docs: {mcp.docs.server_url}")
+    print(f"   Weather: {mcp.weather.server_url}")
+    print(f"   OnCall: {mcp.oncall.server_url}")
+    print(f"   GitHub: {mcp.github.server_url}")
+    print(f"   Spotify: {mcp.spotify.server_url}")
+    print(f"   Product Catalog: {mcp.product_catalog.server_url}")
+else:
+    print("🔄 Initializing MCP Client...")
+    try:
+        mcp = MCPClient()
+        print("✅ MCP Client initialized successfully!")
+        print()
+        print(f"📡 Deployed MCP Servers:")
+        print(f"   1. Excel Analytics: {mcp.excel.server_url}")
+        print(f"   2. Research Documents: {mcp.docs.server_url}")
+        print(f"   3. Weather: {mcp.weather.server_url}")
+        print(f"   4. OnCall: {mcp.oncall.server_url}")
+        print(f"   5. GitHub: {mcp.github.server_url}")
+        print(f"   6. Spotify: {mcp.spotify.server_url}")
+        print(f"   7. Product Catalog: {mcp.product_catalog.server_url}")
+        print(f"   8. Place Order: {mcp.place_order.server_url}")
+        print()
+    except Exception as e:
+        print(f"❌ Failed to initialize MCP Client: {e}")
+        import traceback
+        traceback.print_exc()
+        raise
+```
+
+Step 3: Update Individual MCP Usage Cells
+Replace patterns like:
+```python
+github = GitHubMCP(os.getenv('MCP_SERVER_GITHUB_URL'))
+```
+
+With:
+```python
+github = mcp.github  # Use globally initialized MCP client
+```
+
+Step 4: Handle MCP_SERVERS dictionary references
+Replace MCP_SERVERS['github'] with mcp.github, etc.
+
+Step 5: Update Cell 68 (Lab 10 initialization)
+Keep it but add note that mcp is already initialized in Cell 9
+
+BENEFITS:
+✅ Single point of initialization (Cell 9)
+✅ GitHub MCP properly included
+✅ All servers auto-discovered from .mcp-servers-config
+✅ Consistent access pattern: mcp.github, mcp.weather, etc.
+✅ No manual environment variable lookups in each cell

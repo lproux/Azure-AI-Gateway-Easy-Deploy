@@ -1,0 +1,35 @@
+# Azure Credentials - DO NOT COMMIT
+.azure-credentials.env
+
+# Environment variables
+*.env
+!.env.template
+!*.env.template
+
+# Deployment outputs
+master-lab.env
+deployment-output.env
+
+# Compiled Bicep files
+*.json
+!params-*.json
+!package*.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+*.ipynb.bkp-*
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

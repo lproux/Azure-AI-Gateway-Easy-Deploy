@@ -1,0 +1,22 @@
+<policies>
+    <inbound>
+        <validate-jwt header-name="Authorization"
+                     failed-validation-httpcode="401"
+                     failed-validation-error-message="Unauthorized. Valid JWT token required.">
+            <openid-config url="https://login.microsoftonline.com/{tenant-id}/v2.0/.well-known/openid-configuration" />
+            <audiences>
+                <audience>https://azure-api.net/authorization-manager</audience>
+            </audiences>
+        </validate-jwt>
+        <base />
+    </inbound>
+    <backend>
+        <base />
+    </backend>
+    <outbound>
+        <base />
+    </outbound>
+    <on-error>
+        <base />
+    </on-error>
+</policies>

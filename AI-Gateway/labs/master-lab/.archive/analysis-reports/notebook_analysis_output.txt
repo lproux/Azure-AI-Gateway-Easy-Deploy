@@ -1,0 +1,1038 @@
+================================================================================
+ANALYZING CELLS 1-41
+================================================================================
+
+
+================================================================================
+CELL 1 (Type: code, Execution: 159)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# (-1.0) Section -1: Consolidated Provisioning & Initialization
+"""
+Run these cells (-1.x) in order before using legacy sections.
+Order:
+  (-1.1) Env Loader
+  (-1.2) Dependencies Install
+  (-1.3) Azure CLI & Service Principal
+  (-1.4) Endpoint Normalizer
+  (upcoming) (-1.5) Deployment Helpers
+  (upcoming) (-1.6) Unified Deployment Orchestrator
+  (upcoming) (-1.7) Unified Policy Application
+  (upcoming) (-1.8) Unified MCP Initialization
+Legacy cells retained below for reference.
+"""
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Result: {'text/plain': ["'\\nRun these cells (-1.x) in order before using legacy sections.\\nOrder:\\n  (-1....
+
+================================================================================
+CELL 2 (Type: code, Execution: 160)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# (-1.1) Env Loader (Consolidated)
+from pathlib import Path
+import os
+from typing import Dict, Iterable
+ENV_FILE = Path("master-lab.env")
+TEMPLATE = "APIM_GATEWAY_URL=\nAPIM_API_KEY=\nRESOURCE_GROUP=\nLOCATION=uksouth\nINFERENCE_API_PATH=inference\n"  # minimal; full template in original cell
+SENSITIVE = ["KEY","SECRET","TOKEN","PASSWORD","API_KEY"]
+
+def ensure_env(path: Path):
+    if not path.exists():
+        path.write_text(TEMPLATE, encoding="utf-8")
+        print(f"[env] Created {path}")
+
+d...
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [env] Summary (masked)
+  APIM_API_KEY=bf30*************************ab7
+  AZURE_CLIENT_SECRET=lXV8***...
+
+================================================================================
+CELL 3 (Type: code, Execution: 161)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# (-1.1) Consolidated Environment Loader (Minimal)
+from pathlib import Path
+import re, os
+ENV_FILE = Path('master-lab.env')
+TEMPLATE = """# master-lab.env (auto-generated minimal template if absent)
+SUBSCRIPTION_ID=
+RESOURCE_GROUP=
+LOCATION=
+APIM_GATEWAY_URL=
+INFERENCE_API_PATH=/inference
+OPENAI_ENDPOINT=
+MODEL_SKU=gpt-4o-mini
+"""
+SENSITIVE_PATTERN = re.compile(r'(KEY|SECRET|TOKEN|PASSWORD|API_KEY)', re.IGNORECASE)
+def ensure_env():
+    if not ENV_FILE.exists():
+        ENV_FILE.write_text(TEMPL...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [env] Loaded keys: APIM_GATEWAY_URL, APIM_SERVICE_ID, APIM_SERVICE_NAME, APIM_API_KEY, INFERENCE_API...
+
+================================================================================
+CELL 4 (Type: code, Execution: 162)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# (-1.2) Dependencies Install (Consolidated)
+import sys, subprocess, pathlib, shlex
+REQ_FILE = pathlib.Path('requirements.txt')
+if REQ_FILE.exists():
+    cmd=[sys.executable,'-m','pip','install','-r',str(REQ_FILE)]
+    print('[deps]',' '.join(shlex.quote(c) for c in cmd))
+    r=subprocess.run(cmd,capture_output=True,text=True)
+    print(r.stdout[:800])
+    if r.returncode==0: print('[deps] ✅ complete')
+    else: print('[deps] ⚠️ pip exit',r.returncode,'stderr:',r.stderr[:200])
+else:
+    print('[...
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [deps] 'c:\Users\lproux\OneDrive - Microsoft\bkp\Documents\GitHub\.venv\Scripts\python.exe' -m pip i...
+
+================================================================================
+CELL 5 (Type: code, Execution: 163)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# (-1.3) Azure CLI & Service Principal Setup (Consolidated v2)
+import json, os, shutil, subprocess, sys
+from pathlib import Path
+AZ_CREDS_FILE=Path('.azure-credentials.env')
+
+OS_RELEASE = {}
+try:
+    if Path('/etc/os-release').exists():
+        for line in Path('/etc/os-release').read_text().splitlines():
+            if '=' in line:
+                k,v=line.split('=',1)
+                OS_RELEASE[k]=v.strip().strip('"')
+except Exception:
+    pass
+
+ARCH_LINUX = OS_RELEASE.get('ID') == 'arch'
+CODE...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [azure] az resolved: C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin\az.cmd (reason=ranked selection...
+
+================================================================================
+CELL 6 (Type: code, Execution: 164)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# (-1.4) Endpoint Normalizer & Derived Variables
+"""
+Derives OPENAI_ENDPOINT and related derived variables if missing.
+Logic priority:
+1. Use explicit OPENAI_ENDPOINT if set (leave unchanged).
+2. Else if APIM_GATEWAY_URL + INFERENCE_API_PATH present -> compose.
+3. Else attempt Foundry style endpoints (AZURE_OPENAI_ENDPOINT, AI_FOUNDRY_ENDPOINT).
+Persist back to master-lab.env if value was newly derived.
+"""
+from pathlib import Path
+import os, re
+env_path=Path('master-lab.env')
+text=env_path.read...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [endpoint] Existing OPENAI_ENDPOINT found; using as-is
+[endpoint] OPENAI_ENDPOINT = https://apim-pav...
+
+================================================================================
+CELL 7 (Type: code, Execution: 165)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# (-1.5) Unified az() Helper & Login Check
+"""Provides a cached az CLI executor with:
+- Path reuse via AZ_CLI env (expects (-1.3) run first)
+- Automatic login prompt if account show fails and no service principal creds
+- Timeout controls & JSON parsing convenience
+Usage:
+    ok, data = az('account show', json_out=True)
+    ok, text = az('apim list --resource-group X')
+"""
+import os, subprocess, json, shlex
+from pathlib import Path
+AZ_CLI = os.environ.get('AZ_CLI') or os.environ.get('AZURE_CLI_PA...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [az] version: azure-cli                         2.69.0 *
+[az] account: ME-MngEnvMCAP592090-lproux-1 ...
+
+================================================================================
+CELL 8 (Type: code, Execution: 166)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# (-1.6) Deployment Helpers (Consolidated)
+"""Utilities for ARM/Bicep deployments via az CLI.
+Depends on az() from (-1.5).
+Functions:
+  compile_bicep(bicep_path) -> str json_template_path
+  deploy_template(rg, name, template_file, params: dict) -> (ok, result_json)
+  get_deployment_outputs(rg, name) -> dict outputs or {}
+  ensure_deployment(rg, name, template, params, skip_if_exists=True)
+"""
+import os, json, tempfile, pathlib, shlex
+from pathlib import Path
+
+def compile_bicep(bicep_path:str):
+ ...
+
+[DEPLOYMENT-RELATED CELL]
+
+[BICEP FILES REFERENCED]: ['.bicep']
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [deploy] helpers ready
+...
+
+================================================================================
+CELL 9 (Type: code, Execution: 167)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# (-1.7) Unified Policy Application
+"""Applies one or more API Management policies to the target API using az() wrapper.
+Provide policies as a list of (policy_name, policy_xml_string).
+Automatically creates temp files and invokes az apim api policy create.
+Requires ENV values: RESOURCE_GROUP, APIM_SERVICE (service name), API_ID (azure-openai-api or similar).
+"""
+import os, tempfile, textwrap, pathlib, shlex
+from pathlib import Path
+
+REQUIRED_POLICY_ENV=['RESOURCE_GROUP','APIM_SERVICE','API_ID']
+...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [policy] Missing env vars; set: APIM_SERVICE, API_ID
+...
+
+================================================================================
+CELL 10 (Type: code, Execution: 168)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# (-1.8) Unified MCP Initialization
+"""Initializes required MCP servers in a single pass.
+ENV-driven variables (if present):
+  GITHUB_MCP_URL, WEATHER_MCP_URL, PRODUCT_CATALOG_MCP_URL, ONCALL_MCP_URL, SPOTIFY_MCP_URL
+Gracefully skips any server whose client helper isn't available.
+Creates a global dict MCP_SERVERS with name->client.
+"""
+import os
+MCP_SERVERS={}
+
+# Mapping env key -> (friendly_name, import_path, class_name)
+SERVER_SPECS=[
+    ('GITHUB_MCP_URL', ('github','notebook_mcp_helpers','G...
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [mcp] Initialized 0 server(s)
+...
+
+================================================================================
+CELL 11 (Type: code, Execution: 169)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# (-1.9) Unified AzureOps Wrapper (Enhanced SDK Strategy)
+"""High-level Azure operations wrapper consolidating:
+- CLI resolution & version
+- Service principal / interactive login fallback
+- Generic az() invocation (JSON/text)
+- Resource group ensure (CLI or SDK)
+- Bicep compile (CLI) + group deployment (CLI or SDK)
+- AI Foundry model deployments (SDK)
+- APIM policy fragments + API policy apply (with rollback)
+- Deployment outputs retrieval & simplification
+- MCP server health probing
+
+Strategy:
+...
+
+[DEPLOYMENT-RELATED CELL]
+
+[BICEP FILES REFERENCED]: ['deploy-01-core.bicep']
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [AzureOps] CLI: C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin\az.cmd
+[AzureOps] login status: OK
+[...
+
+================================================================================
+CELL 12 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+# Section -1: Consolidated Provisioning & Initialization
+
+This section provides an optimized, minimal set of cells to run the entire lab setup end-to-end.
+Run these in order, then skip legacy duplicat...
+
+================================================================================
+CELL 13 (Type: code, Execution: 170)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# === Unified Environment Loader & Load Balancing Overview ===
+"""
+This cell provides a single source of truth for configuration:
+- Auto-creates `master-lab.env` if missing (non-secret template placeholders).
+- Loads key=value pairs (duplicates allowed) and merges with current process env.
+- Masks sensitive values when displaying (KEY, SECRET, TOKEN, PASSWORD, API_KEY substrings).
+- Ensures `.gitignore` patterns include env files (both global and lab-specific).
+- Displays load balancing pools an...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [env] Summary (masked=True)
+
+[apim]
+  APIM_API_KEY = bf30*************************ab7
+  APIM_GATEWAY...
+
+================================================================================
+CELL 14 (Type: code, Execution: 171)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# Azure CLI + Service Principal Consolidated Setup (LEGACY - now delegates to unified az())
+import os, json
+# Prefer AZ_CLI already resolved by (-1.3) or az() helper
+AZ_CLI = os.environ.get('AZ_CLI') or os.environ.get('AZURE_CLI_PATH') or 'az'
+print(f"[INFO] Using Azure CLI (delegated): {AZ_CLI}")
+# Basic vars sourced from ENV dict populated earlier
+SUBSCRIPTION_ID = ENV.get('AZURE_SUBSCRIPTION_ID') or ENV.get('SUBSCRIPTION_ID')
+RESOURCE_GROUP = ENV.get('RESOURCE_GROUP') or 'lab-master-lab'
+LOCA...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [INFO] Using Azure CLI (delegated): C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin\az.cmd
+[INFO] Su...
+
+================================================================================
+CELL 15 (Type: code, Execution: 172)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# Unified Dependencies Install (replaces older dependency cell)
+import os, sys, subprocess, pathlib, shlex
+LAB_ROOT = pathlib.Path(r"c:\Users\lproux\OneDrive - Microsoft\bkp\Documents\GitHub\MCP-servers-internalMSFT-and-external\AI-Gateway\labs\master-lab")
+REQ_FILE = LAB_ROOT / "requirements.txt"
+if REQ_FILE.exists():
+    print(f"[deps] Installing from {REQ_FILE} (idempotent)")
+    cmd = [sys.executable, "-m", "pip", "install", "-r", str(REQ_FILE)]
+    print("[deps] Command:", " ".join(shlex.qu...
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [deps] Installing from c:\Users\lproux\OneDrive - Microsoft\bkp\Documents\GitHub\MCP-servers-interna... | Stream: Requirement already satisfied: azure-identity>=1.15.0 in c:\users\lproux\onedrive - microsoft\bkp\do...
+
+================================================================================
+CELL 16 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+## ✅ Optimized Execution Order (Cells 1–25 Refactor)
+
+Recommended run sequence for clean provisioning & testing:
+1. Environment Loader (already executed) – establishes `ENV` and masking.
+2. Dependenci...
+
+================================================================================
+CELL 17 (Type: code, Execution: 173)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# Lab: Semantic Caching Configuration
+# Deploy semantic caching policy to APIM before testing cache behavior
+
+import os
+import subprocess
+import shutil
+import time
+import tempfile
+
+def get_az_cli():
+    """Find Azure CLI executable - handles WSL vs Windows paths"""
+    az_path = shutil.which('az')
+    if az_path:
+        return az_path
+    
+    common_paths = [
+        '/usr/bin/az',
+        r'C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin\az.cmd',
+    ]
+    
+    for path in common_paths:
+     ...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [INFO] Azure CLI: c:\Users\lproux\OneDrive - Microsoft\bkp\Documents\GitHub\.venv\Scripts\az.BAT
+[*]...
+
+================================================================================
+CELL 18 (Type: code, Execution: 174)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# Azure CLI path resolution (patched to avoid hardcoded az.BAT)
+import shutil, subprocess, os, sys
+from pathlib import Path
+
+AZ_CANDIDATES = [
+    shutil.which("az"),  # primary (WSL /usr/bin/az or PATH)
+    str(Path(sys.prefix) / "bin" / "az"),
+    str(Path.home() / ".azure" / "azure"),  # hypothetical custom install
+]
+AZ_CANDIDATES += [c for c in [os.getenv("AZURE_CLI_PATH"), os.getenv("AZ_PATH")] if c]
+
+az_cli = next((c for c in AZ_CANDIDATES if c and Path(c).exists()), None)
+if not az_cli:
+ ...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [INFO] Azure CLI resolved: c:\Users\lproux\OneDrive - Microsoft\bkp\Documents\GitHub\.venv\Scripts\a...
+
+================================================================================
+CELL 19 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+# SECTION 0 - DEPLOY AND CONFIG
+
+================================================================================
+CELL 20 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+### Dependency Alignment Notes
+This notebook now performs multi-strategy installation for `openai` + `openai-agents`:
+
+Installation Order:
+1. Preferred spec (env `OPENAI_PREFERRED_SPEC`, default `open...
+
+================================================================================
+CELL 21 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+### Environment Standardization
+The notebook now **always loads** `master-lab.env` (and intentionally ignores a legacy `.env` if present). This ensures consistency across all mid-range cells (50–90) a...
+
+================================================================================
+CELL 22 (Type: code, Execution: 175)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# Cell 2: MCP Client Initialization (Updated for 2 Real Servers)
+
+import sys
+sys.path.append('.')
+
+from notebook_mcp_helpers import MCPClient, MCPError
+
+# Check if already initialized (prevent re-initialization)
+if 'mcp' in globals() and hasattr(mcp, 'excel'):
+    print("⚠️  MCP Client already initialized. Skipping re-initialization.")
+    print(f"   Excel MCP: {mcp.excel.server_url}")
+    print(f"   Docs MCP: {mcp.docs.server_url}")
+else:
+    print("🔄 Initializing MCP Client...")
+    try:
+     ...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: 🔄 Initializing MCP Client...
+✅ MCP Client initialized successfully!
+
+📡 Real MCP Servers Deployed:
+  ...
+
+================================================================================
+CELL 23 (Type: code, Execution: 176)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# Cell 2: MCP Client Initialization (Updated for 5 Real Servers)
+import sys
+sys.path.append('.')
+
+from notebook_mcp_helpers import MCPClient, MCPError
+
+# Check if already initialized with ALL 5 servers (prevent re-initialization)
+if 'mcp' in globals() and hasattr(mcp, 'excel') and hasattr(mcp, 'docs') and hasattr(mcp, 'weather') and hasattr(mcp, 'oncall') and hasattr(mcp, 'spotify'):
+    print("⚠️  MCP Client already initialized with all 5 servers. Skipping re-initialization.")
+    print(f"   Ex...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: ⚠️  MCP Client already initialized with all 5 servers. Skipping re-initialization.
+   Excel MCP: htt...
+
+================================================================================
+CELL 24 (Type: code, Execution: 177)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# Environment / Dependencies Setup (run once)
+# Installs Python packages listed in the lab-specific requirements.txt.
+# Safe to re-run: will only attempt install if not already marked complete.
+
+import os, sys, subprocess, pathlib, shlex
+
+LAB_ROOT = pathlib.Path(r"c:\Users\lproux\OneDrive - Microsoft\bkp\Documents\GitHub\MCP-servers-internalMSFT-and-external\AI-Gateway\labs\master-lab")
+REQ_FILE = LAB_ROOT / "requirements.txt"
+FLAG_VAR = "_MASTER_LAB_REQS_INSTALLED"
+
+def _already_done() -> bool:...
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [deps] Requirements already installed in this kernel. Skipping.
+...
+
+================================================================================
+CELL 25 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+### Install Required Packages
+
+Run this first to install all dependencies.
+
+================================================================================
+CELL 26 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+<a id='init'></a>
+## Master Initialization
+### Import All Required Libraries
+
+================================================================================
+CELL 27 (Type: code, Execution: 178)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# APIM policy apply helper (patched Azure CLI resolution)
+import shutil, subprocess, os, sys, textwrap, tempfile
+from pathlib import Path
+
+AZ_CANDIDATES = [
+    shutil.which("az"),
+    str(Path(sys.prefix) / "bin" / "az"),
+]
+AZ_CANDIDATES += [c for c in [os.getenv("AZURE_CLI_PATH"), os.getenv("AZ_PATH")] if c]
+az_cli = next((c for c in AZ_CANDIDATES if c and Path(c).exists()), None)
+if not az_cli:
+    raise SystemExit("[FATAL] Azure CLI 'az' not found. Install it before continuing.")
+print(f"[IN...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [INFO] Azure CLI resolved: c:\Users\lproux\OneDrive - Microsoft\bkp\Documents\GitHub\.venv\Scripts\a...
+
+================================================================================
+CELL 28 (Type: code, Execution: 179)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+import os, sys, json, time, asyncio, random, base64
+import requests
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+from io import BytesIO
+from PIL import Image as PILImage
+from IPython.display import display
+
+# Azure imports
+from openai import AzureOpenAI, AsyncAzureOpenAI
+from azure.ai.projects import AIProjectClient
+from azure.identity import DefaultAzureCredential
+from azure.ai.inference import ChatCompletionsClient
+from azure.ai.inference.models import SystemMes...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [OK] All libraries imported
+...
+
+================================================================================
+CELL 29 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+### Load Environment Variables from Deployment Output
+
+================================================================================
+CELL 30 (Type: code, Execution: 180)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from deployment
+env_file = 'master-lab.env'
+if os.path.exists(env_file):
+    load_dotenv(env_file)
+    print(f'[OK] Loaded environment from {env_file}')
+    
+    # Verify key variables are loaded
+    apim_url = os.getenv('APIM_GATEWAY_URL')
+    if apim_url:
+        print(f'[OK] APIM Gateway URL: {apim_url}')
+    else:
+        print('[!] Warning: APIM_GATEWAY_URL not found in .env')
+else:
+    print(f'[!] {env_file} not found. ...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [OK] Loaded environment from master-lab.env
+[OK] APIM Gateway URL: https://apim-pavavy6pu5hpa.azure-...
+
+================================================================================
+CELL 31 (Type: code, Execution: 181)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# Azure CLI resolution for subsequent operations (patched)
+import shutil, subprocess, os, sys, tempfile
+from pathlib import Path
+
+AZ_CANDIDATES = [
+    shutil.which("az"),
+    str(Path(sys.prefix) / "bin" / "az"),
+]
+AZ_CANDIDATES += [c for c in [os.getenv("AZURE_CLI_PATH"), os.getenv("AZ_PATH")] if c]
+az_cli = next((c for c in AZ_CANDIDATES if c and Path(c).exists()), None)
+if not az_cli:
+    raise SystemExit("[FATAL] Azure CLI 'az' not found. Install it before continuing.")
+print(f"[INFO] Azure...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [INFO] Azure CLI resolved: c:\Users\lproux\OneDrive - Microsoft\bkp\Documents\GitHub\.venv\Scripts\a...
+
+================================================================================
+CELL 32 (Type: code, Execution: 182)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+import os
+import json
+import subprocess
+import shutil
+from datetime import datetime
+
+# Azure CLI PATH detection helper
+def get_az_cli():
+    """Find Azure CLI executable - handles WSL vs Windows paths"""
+    # Try shutil.which first (works for WSL /usr/bin/az)
+    az_path = shutil.which('az')
+    if az_path:
+        return az_path
+
+    # Fallback to common locations
+    common_paths = [
+        '/usr/bin/az',  # WSL/Linux
+        r'C:\Program Files\Microsoft SDKs\Azure\CLI2\wbin\az.cmd',  # Wind...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [INFO] Azure CLI: c:\Users\lproux\OneDrive - Microsoft\bkp\Documents\GitHub\.venv\Scripts\az.BAT
+[IN...
+
+================================================================================
+CELL 33 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+### Master Lab Configuration
+
+Set deployment configuration for all 4 deployment steps.
+
+================================================================================
+CELL 34 (Type: code, Execution: 183)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# Master Lab Configuration
+
+# IMPORTANT: Set your Azure subscription ID
+# Get this from: Azure Portal > Subscriptions > Copy Subscription ID
+subscription_id = 'd334f2cd-3efd-494e-9fd3-2470b1a13e4c'  # Replace with your subscription ID
+
+deployment_name_prefix = 'master-lab'
+resource_group_name = 'lab-master-lab'
+location = 'uksouth'
+
+# Deployment names for each step
+deployment_step1 = f'{deployment_name_prefix}-01-core'
+deployment_step2 = f'{deployment_name_prefix}-02-ai-foundry'
+deployment_step3...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [OK] Configuration set
+  Subscription ID: d334f2cd-3efd-494e-9fd3-2470b1a13e4c
+  Resource Group: lab...
+
+================================================================================
+CELL 35 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+### Deployment Helper Functions
+
+Azure SDK functions for deployment management.
+
+================================================================================
+CELL 36 (Type: code, Execution: 184)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+import json
+import time
+import os
+import shutil
+from pathlib import Path
+from dotenv import load_dotenv
+from azure.mgmt.resource import ResourceManagementClient
+from azure.identity import ClientSecretCredential, AzureCliCredential
+
+print('[*] Initializing Azure authentication...')
+print()
+
+# Try to load Service Principal credentials from .azure-credentials.env
+credentials_file = '.azure-credentials.env'
+credential = None
+
+if os.path.exists(credentials_file):
+    print(f'[*] Found {credentials_fi...
+
+[DEPLOYMENT-RELATED CELL]
+
+[BICEP FILES REFERENCED]: ['.bicep']
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [*] Initializing Azure authentication...
+
+[*] Found .azure-credentials.env, using Service Principal ... | Stream: [OK] Azure SDK initialized and connection verified
+
+[OK] Helper functions defined
+...
+
+================================================================================
+CELL 37 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+### Main Deployment - All 4 Steps
+
+Deploys all infrastructure in sequence:
+1. Core (APIM, Log Analytics, App Insights) - ~10 min
+2. AI Foundry (3 hubs + 14 models) - ~15 min
+3. Supporting Services (Re...
+
+================================================================================
+CELL 38 (Type: code, Execution: 185)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+print('=' * 70)
+print('MASTER LAB DEPLOYMENT - 4 STEPS (RESILIENT)')
+print('=' * 70)
+print()
+
+total_start = time.time()
+
+# Ensure resource group exists
+print('[*] Step 0: Ensuring resource group exists...')
+if not check_resource_group_exists(resource_group_name):
+    print(f'[*] Creating resource group: {resource_group_name}')
+    resource_client.resource_groups.create_or_update(
+        resource_group_name,
+        {'location': location}
+    )
+    print('[OK] Resource group created')
+else:
+    ...
+
+[DEPLOYMENT-RELATED CELL]
+
+[BICEP FILES REFERENCED]: ['deploy-01-core.bicep', 'deploy-02c-apim-api.bicep', 'deploy-03-supporting.bicep', 'deploy-04-mcp.bicep']
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: ======================================================================
+MASTER LAB DEPLOYMENT - 4 STE...
+
+================================================================================
+CELL 39 (Type: markdown, Execution: Not executed)
+================================================================================
+[MARKDOWN]
+### Generate .env File
+
+Create `master-lab.env` with all deployment outputs for use in lab tests.
+
+================================================================================
+CELL 40 (Type: code, Execution: 186)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+import os
+from datetime import datetime
+
+print('[*] Generating master-lab.env...')
+
+# Ensure step2_outputs, step3_outputs and step4_outputs exist (safe fallback to empty dicts)
+try:
+    step2_outputs
+except NameError:
+    try:
+        step2_outputs = get_deployment_outputs(resource_group_name, deployment_step2c)
+    except Exception:
+        step2_outputs = {}
+
+try:
+    step3_outputs
+except NameError:
+    try:
+        step3_outputs = get_deployment_outputs(resource_group_name, deployment_step3)
+...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [*] Generating master-lab.env...
+[OK] Created master-lab.env
+[OK] File location: c:\Users\lproux\One...
+
+================================================================================
+CELL 41 (Type: code, Execution: 89)
+================================================================================
+
+SOURCE CODE:
+----------------------------------------
+# Unified Configuration Loader Cell
+"""
+Loads all required environment and configuration variables for this notebook in one place.
+Steps:
+ 1. Parse .env (no external dependency; manual loader)
+ 2. Set defaults for missing optional values
+ 3. Validate required keys and print a summary table
+ 4. Expose a Config dataclass instance + individual top-level variables
+Re-run this cell whenever .env changes.
+"""
+import os, pathlib, re, json, dataclasses, textwrap
+from typing import Optional
+
+ENV_FILE = p...
+
+[DEPLOYMENT-RELATED CELL]
+
+OUTPUT STATUS:
+----------------------------------------
+Stream: [OK] All required keys present.
+
+Configuration Summary:
+--------------------------------------------...
+
+
+================================================================================
+SUMMARY OF FINDINGS (Cells 1-41)
+================================================================================
+
+Deployment-related cells: [1, 3, 5, 6, 7, 8, 9, 11, 13, 14, 17, 18, 22, 23, 27, 28, 30, 31, 32, 34, 36, 38, 40, 41]
+Total: 24
+
+Bicep file references:
+  Cell 8: .bicep
+  Cell 11: deploy-01-core.bicep
+  Cell 36: .bicep
+  Cell 38: deploy-01-core.bicep
+  Cell 38: deploy-02c-apim-api.bicep
+  Cell 38: deploy-03-supporting.bicep
+  Cell 38: deploy-04-mcp.bicep
+
+File references (all types):
+  .: cells [13]
+  ..: cells [13]
+  ../..: cells [13]
+  ../../..: cells [13]
+  .apim-policy-backups: cells [11]
+  .azure-credentials.env: cells [5, 32, 32]
+  .bicep: cells [8, 36]
+  .env: cells [41]
+  .json: cells [8, 11, 36]
+  /etc/os-release: cells [5, 5]
+  deploy-01-core.bicep: cells [11, 38]
+  deploy-02c-apim-api.bicep: cells [38]
+  deploy-03-supporting.bicep: cells [38]
+  deploy-04-mcp.bicep: cells [38]
+  master-lab.env: cells [2, 3, 6, 13]
+  param_{k}.json: cells [8, 11]
+  params-01-core.json: cells [38, 38, 38]
+  params-03-supporting.json: cells [38, 38, 38, 38]
+  requirements.txt: cells [4, 4, 15, 24]
+  ~/.azure/msal_token_cache.json: cells [32]
+  ~/.msal_token_cache.json: cells [32]
+
+Variable assignments (appearing multiple times):
+  APIM_API_KEY: defined in cells [13, 40] [DUPLICATE]
+  APIM_GATEWAY_URL: defined in cells [3, 13, 40] [DUPLICATE]
+  AZ_CANDIDATES: defined in cells [18, 27, 31] [DUPLICATE]
+  AZ_CLI: defined in cells [7, 14] [DUPLICATE]
+  CONTENT_SAFETY_ENDPOINT: defined in cells [13, 40] [DUPLICATE]
+  CONTENT_SAFETY_KEY: defined in cells [13, 40] [DUPLICATE]
+  COSMOS_ACCOUNT_NAME: defined in cells [13, 40] [DUPLICATE]
+  COSMOS_ENDPOINT: defined in cells [13, 40] [DUPLICATE]
+  COSMOS_KEY: defined in cells [13, 40] [DUPLICATE]
+  ENV: defined in cells [2, 3, 13] [DUPLICATE]
+  ENV_FILE: defined in cells [2, 3, 13, 41] [DUPLICATE]
+  INFERENCE_API_PATH: defined in cells [3, 13, 40] [DUPLICATE]
+  LAB_ROOT: defined in cells [15, 24] [DUPLICATE]
+  LOCATION: defined in cells [3, 13, 14, 40, 41] [DUPLICATE]
+  OPENAI_ENDPOINT: defined in cells [3, 41] [DUPLICATE]
+  REDIS_HOST: defined in cells [13, 40] [DUPLICATE]
+  REDIS_KEY: defined in cells [13, 40] [DUPLICATE]
+  REDIS_PORT: defined in cells [13, 40] [DUPLICATE]
+  REQ_FILE: defined in cells [4, 15, 24] [DUPLICATE]
+  RESOURCE_GROUP: defined in cells [3, 13, 14, 27, 40, 41] [DUPLICATE]
+  SEARCH_ADMIN_KEY: defined in cells [13, 40] [DUPLICATE]
+  SEARCH_ENDPOINT: defined in cells [13, 40] [DUPLICATE]
+  SEARCH_SERVICE_NAME: defined in cells [13, 40] [DUPLICATE]
+  SUBSCRIPTION_ID: defined in cells [3, 14, 41] [DUPLICATE]
+  TEMPLATE: defined in cells [2, 3] [DUPLICATE]
+  az_cli: defined in cells [17, 18, 27, 31, 32] [DUPLICATE]
+  deployment_step1: defined in cells [34, 38] [DUPLICATE]
+  deployment_step3: defined in cells [34, 38] [DUPLICATE]
+  deployment_step4: defined in cells [34, 38] [DUPLICATE]
+  env: defined in cells [17, 32] [DUPLICATE]
+  env_file: defined in cells [30, 40] [DUPLICATE]
+  policy_xml: defined in cells [17, 27] [DUPLICATE]
+  subscription_id: defined in cells [5, 34] [DUPLICATE]
+
+Key imports:
+  IPython.display: cells [28]
+  PIL: cells [28]
+  azure.ai.inference: cells [28]
+  azure.ai.inference.models: cells [28]
+  azure.ai.projects: cells [28]
+  azure.core.credentials: cells [28]
+  azure.identity: cells [28, 36]
+  azure.mgmt.cognitiveservices: cells [38]
+  azure.mgmt.cognitiveservices.models: cells [38]
+  azure.mgmt.resource: cells [36]
+  azure.search.documents: cells [28]
+  azure.search.documents.indexes: cells [28]
+  datetime: cells [32, 40]
+  dotenv: cells [30, 36]
+  io: cells [28]
+  json: cells [32, 36]
+  json, os, shutil, subprocess, sys: cells [5]
+  matplotlib as mpl: cells [28]
+  matplotlib.pyplot as plt: cells [28]
+  mcp: cells [28]
+
+Frequent function calls:
+  exists(): called in 19 cells
+  get(): called in 16 cells
+  Path(): called in 15 cells
+  join(): called in 14 cells
+  str(): called in 12 cells
+  run(): called in 11 cells
+  strip(): called in 9 cells
+  items(): called in 9 cells
+  len(): called in 9 cells
+  append(): called in 9 cells
+  split(): called in 8 cells
+  splitlines(): called in 8 cells
+  write_text(): called in 8 cells
+  read_text(): called in 7 cells
+  which(): called in 7 cells

@@ -1,0 +1,101 @@
+name: New MCP server submission
+description: Request to add, modify, use, or rebuild/sponsor an MCP server
+title: "MCP Server Request: [SERVER NAME]"
+labels: ["needs triage"]
+assignees:
+  - laurajiang_microsoft
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Request a new MCP server to be added to the 1ES MCP Registry. 
+  - type: checkboxes
+    id: 1p-3p-server-status
+    attributes:
+      label: Is this a 1P or 3P server? 
+      description: 1P MCP servers are servers developed by a Microsoft developer. 3P MCP servers are servers originally developed by a non-Microsoft developer that must be re-built internally.
+      options: 
+        - label: 1P server
+        - label: 3P server
+  - type: checkboxes
+    id: local-or-remote-server
+    attributes:
+      label: Is this a remote or local server?
+      options: 
+        - label: Remote server
+        - label: Local server
+  - type: input
+    id: servicetree-id
+    attributes:
+      label: ServiceTree ID
+      placeholder: "Provide the ServiceTree ID for the owning service of this MCP server"
+    validations:
+      required: true
+  - type: textarea
+    id: server-description
+    attributes:
+      label: Server description
+      placeholder: "Enter a brief description of your MCP server, including any security group instructions needed to access your server."
+    validations:
+      required: true
+  - type: textarea
+    id: server-install
+    attributes:
+      label: Server endpoint or package name
+      placeholder: "Provide the endpoint of your server if remote, or the executable name of your package (e.g.: exec-mcp)"
+    validations:
+      required: true
+  - type: input
+    id: ownership
+    attributes:
+      label: MCP server owner
+      placeholder: "If there is a specific point of contact for MCP work, provide it here. Otherwise, we will default to the ServiceTree metadata entry."
+    validations:
+      required: false
+  - type: dropdown
+    id: mcp-server-status
+    attributes:
+      label:  What is the status of your server? Under development means the server is not yet available. Any server that is useable should be, at a minimum, listed as private preview.
+      options: 
+        - Under development
+        - Private preview 
+        - Public preview 
+        - Generally available
+    validations:
+        required: true
+  - type: checkboxes
+    id: best-practices-checkbox
+    attributes:
+      label: If this a 1P server, you confirm that your team owns the domain of the MCP server content, and does not recreate any existing MCP servers or tools. If this a 3P server, you confirm that you agree to re-build the server.
+      options: 
+        - label: Yes, I agree to the above guidance
+          required: true
+  - type: checkboxes
+    id: best-practices-checkbox-2
+    attributes:
+      label: For local servers, I have read and understand the publishing guidance at aka.ms/1mcp/publishing#publishing-steps.
+      options: 
+        - label: Yes, I agree to the above guidance
+          required: true
+  - type: input
+    id: ado-organization
+    attributes:
+      label: ADO organization name / GUID (Required for local servers only)
+      placeholder: "Enter your Azure DevOps organization name or GUID (e.g., 'microsoft')"
+      description: "This field is required only if you are submitting a local server request."
+    validations:
+      required: false
+  - type: input
+    id: managed-identity
+    attributes:
+      label: Managed identity or service principal name / GUID (Required for local servers only)
+      placeholder: "Enter the name of your team's managed identity or service principal"
+      description: "This field is required only if you are submitting a local server request."
+    validations:
+      required: false
+  - type: textarea
+    id: misc-details
+    attributes:
+      label: Additional details
+      placeholder: "Enter any other information you wish to share, such as approval from another team if you've created an MCP server on their behalf or additional server information that is relevant for users."

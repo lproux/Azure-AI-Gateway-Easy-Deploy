@@ -1,0 +1,20 @@
+<fragment>
+    <!--
+    Private Connectivity Fragment
+    Authenticates to Azure OpenAI using Managed Identity
+    and routes traffic through private endpoints.
+    -->
+    <authentication-managed-identity
+        resource="https://cognitiveservices.azure.com"
+        output-token-variable-name="managed-id-access-token"
+        ignore-error="false" />
+
+    <set-header name="Authorization" exists-action="override">
+        <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
+    </set-header>
+
+    <!-- Remove the api-key header if present to use MI token -->
+    <set-header name="api-key" exists-action="delete" />
+
+    <set-backend-service backend-id="{{{{named-value-config-private-backend-id}}}}" />
+</fragment>

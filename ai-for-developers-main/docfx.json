@@ -1,0 +1,44 @@
+{
+  "build": {
+    "content": [
+      { "files": ["index.md"] },
+      { "files": ["guidance.md"] },
+      { "files": ["aitools/**/*.{md,yml}"]},
+      { "files": ["github-copilot-faq.md"] },
+      { "files": ["github-copilot-guidelines.md"] },
+      { "files": ["mcp/**/*.{md,yml}"] },
+      { "files": ["toc.yml"] }
+    ],
+    "resource": [
+      {
+        "files": [
+          "images/**"
+        ]
+      }
+    ],
+    "dest": "_site",
+    "globalMetadata": {
+      "_appTitle": "AI Tools for Microsoft Developers",
+      "_appLogoPath": "images/107072910.png",
+      "_enableSearch": true,
+      "_enableNewTab": true,
+      "_gitContribute": {
+          "repo": "https://github.com/1es/ai-for-developers",
+          "branch": "main"
+      },
+      "_gitUrlPattern": "github"
+    },
+    "globalMetadataFiles": [],
+    "fileMetadataFiles": [],
+    "template": [
+      "default",
+      "modern"
+    ],
+    "postProcessors": [],
+    "markdownEngineName": "markdig",
+    "noLangKeyword": false,
+    "keepFileLink": false,
+    "cleanupCacheHistory": false,
+    "disableGitFeatures": false
+  }
+}

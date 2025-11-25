@@ -1,0 +1,74 @@
+name: Publish to EngHub 📚
+
+permissions:
+  id-token: write
+  contents: read
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: 'eng.ms'
+  cancel-in-progress: true
+
+jobs:
+  publish:
+    runs-on: windows-latest
+    environment:
+      name: eng.ms
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v4
+        with:
+          node-version: '16.16.0'
+
+      - name: Entra ID ☁️
+        uses: azure/login@v2
+        with:
+          client-id: 15d1fdb3-238e-4d98-9675-121704432568
+          tenant-id: 72f988bf-86f1-41af-91ab-2d7cd011db47
+          allow-no-subscriptions: true
+
+      - name: Install DocFX
+        run: |
+          choco install docfx --version=2.59.4 -y
+          docfx -v
+          if ($lastexitcode -ne 0){
+              throw ("Error installing docfx")
+          }
+
+      - name: Get eng.ms private feed token
+        id: get-token
+        shell: bash
+        run: |
+          ACCESSTOKEN=$(az account get-access-token --scope api://engineeringhubprod.ame.gbl/.default | jq -r .accessToken)
+          echo "::add-mask::$ACCESSTOKEN"
+          echo "ENGHUB_TOKEN=$ACCESSTOKEN" >> "$GITHUB_OUTPUT"
+          echo "Partial value for confirmation: ${ACCESSTOKEN:0:5}"
+
+      - name: Push to eng.ms
+        uses: 1es-actions/enghub@v1
+        with:
+          content-id: 854436a2-cfbc-4a1b-bd74-9416337c87fe
+          client-id: 15d1fdb3-238e-4d98-9675-121704432568
+          access-token: ${{ steps.get-token.outputs.ENGHUB_TOKEN }}
+        env:
+          BUILD_SOURCESDIRECTORY: ${{ github.workspace }}
+
+      - name: Push to eng.ms (old docs site)
+        uses: 1es-actions/enghub@v1
+        with:
+          content-id: 96ee97f7-8750-4d8f-9dbd-b2e9f7f00661
+          client-id: 15d1fdb3-238e-4d98-9675-121704432568
+          access-token: ${{ steps.get-token.outputs.ENGHUB_TOKEN }}
+        env:
+          BUILD_SOURCESDIRECTORY: ${{ github.workspace }}

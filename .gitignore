@@ -1,0 +1,57 @@
+# Python virtual environments
+venv/
+.venv/
+ENV/
+env/
+**/venv/
+**/bin/python
+**/bin/python3
+**/bin/python3.*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+# Global ignores for any env configuration; templates remain tracked
+.env
+master-lab.env
+*.env
+!.env.template
+!*.env.template
+
+# Logs
+*.log
+logs/
+
+# Workshop files
+.workshop/

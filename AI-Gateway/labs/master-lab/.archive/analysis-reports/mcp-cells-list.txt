@@ -1,0 +1,4 @@
+MCP-using cells in master-ai-gateway-final.ipynb:
+Total: 28
+
+Cell indices: [9, 22, 30, 32, 68, 70, 71, 72, 74, 76, 78, 80, 82, 85, 87, 88, 91, 105, 138, 148, 150, 152, 196, 197, 199, 202, 219, 220]

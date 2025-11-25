@@ -1,0 +1,148 @@
+{
+  "version": "1.0.0",
+  "description": "Fragment-based policy configuration for Azure API Management",
+  "fragments": {
+    "fragment-token-metrics": {
+      "id": "fragment-token-metrics",
+      "description": "Azure OpenAI token metrics emission to Application Insights",
+      "file": "fragments/token-metrics.xml",
+      "applies_to": ["inbound"],
+      "feature_flag": "feature-token-metrics-enabled",
+      "dependencies": [],
+      "configuration": {
+        "config-token-metrics-namespace": {
+          "default": "openai",
+          "description": "Application Insights namespace for token metrics"
+        }
+      }
+    },
+    "fragment-load-balancing": {
+      "id": "fragment-load-balancing",
+      "description": "Backend pool load balancing with priority and retry logic",
+      "file": "fragments/load-balancing.xml",
+      "applies_to": ["inbound", "backend"],
+      "feature_flag": "feature-load-balancing-enabled",
+      "dependencies": [],
+      "configuration": {
+        "config-lb-backend-pool-id": {
+          "default": "openai-backend-pool",
+          "description": "Backend pool ID for load balancing"
+        },
+        "config-lb-retry-count": {
+          "default": "2",
+          "description": "Number of retry attempts for failed requests"
+        }
+      }
+    },
+    "fragment-token-ratelimit": {
+      "id": "fragment-token-ratelimit",
+      "description": "Token-based rate limiting (TPM) for Azure OpenAI",
+      "file": "fragments/token-ratelimit.xml",
+      "applies_to": ["inbound"],
+      "feature_flag": "feature-token-ratelimit-enabled",
+      "dependencies": [],
+      "configuration": {
+        "config-token-ratelimit-tpm": {
+          "default": "100",
+          "description": "Tokens per minute limit per subscription"
+        }
+      }
+    },
+    "fragment-private-connectivity": {
+      "id": "fragment-private-connectivity",
+      "description": "Managed identity authentication for private connectivity",
+      "file": "fragments/private-connectivity.xml",
+      "applies_to": ["inbound"],
+      "feature_flag": "feature-private-connectivity-enabled",
+      "dependencies": [],
+      "configuration": {
+        "config-private-backend-id": {
+          "default": "openai-private-backend",
+          "description": "Backend ID for private endpoint connectivity"
+        }
+      }
+    },
+    "fragment-caching": {
+      "id": "fragment-caching",
+      "description": "Semantic caching using Azure Redis for prompt similarity",
+      "file": "fragments/caching.xml",
+      "applies_to": ["inbound", "outbound"],
+      "feature_flag": "feature-caching-enabled",
+      "dependencies": ["redis-cache"],
+      "configuration": {
+        "config-cache-duration-seconds": {
+          "default": "300",
+          "description": "Cache duration in seconds (5 minutes default)"
+        },
+        "config-cache-score-threshold": {
+          "default": "0.8",
+          "description": "Semantic similarity threshold (0.0-1.0)"
+        },
+        "config-cache-embeddings-backend": {
+          "default": "openai-embeddings-backend",
+          "description": "Backend ID for embeddings model"
+        },
+        "config-cache-embeddings-auth": {
+          "default": "subscription-key",
+          "description": "Authentication type for embeddings backend"
+        }
+      }
+    },
+    "fragment-circuit-breaker": {
+      "id": "fragment-circuit-breaker",
+      "description": "Circuit breaker pattern for resilience and fault tolerance",
+      "file": "fragments/circuit-breaker.xml",
+      "applies_to": ["inbound", "on-error"],
+      "feature_flag": "feature-circuit-breaker-enabled",
+      "dependencies": [],
+      "configuration": {
+        "config-circuit-error-threshold": {
+          "default": "5",
+          "description": "Number of consecutive failures before opening circuit"
+        },
+        "config-circuit-timeout-seconds": {
+          "default": "60",
+          "description": "Duration circuit stays open in seconds"
+        },
+        "config-circuit-window-seconds": {
+          "default": "120",
+          "description": "Time window for counting failures"
+        }
+      }
+    }
+  },
+  "feature_flags": {
+    "feature-token-metrics-enabled": {
+      "default": true,
+      "description": "Enable token consumption metrics"
+    },
+    "feature-load-balancing-enabled": {
+      "default": true,
+      "description": "Enable backend pool load balancing"
+    },
+    "feature-token-ratelimit-enabled": {
+      "default": false,
+      "description": "Enable token-based rate limiting (disabled by default for testing)"
+    },
+    "feature-private-connectivity-enabled": {
+      "default": false,
+      "description": "Enable managed identity and private connectivity (requires private endpoints)"
+    },
+    "feature-caching-enabled": {
+      "default": false,
+      "description": "Enable semantic caching (requires Redis cache)"
+    },
+    "feature-circuit-breaker-enabled": {
+      "default": true,
+      "description": "Enable circuit breaker for fault tolerance"
+    }
+  },
+  "deployment_order": [
+    "fragment-token-metrics",
+    "fragment-load-balancing",
+    "fragment-circuit-breaker",
+    "fragment-token-ratelimit",
+    "fragment-caching",
+    "fragment-private-connectivity"
+  ]
+}

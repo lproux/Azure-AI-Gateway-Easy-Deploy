@@ -1,0 +1,103 @@
+<policies>
+    <inbound>
+        <base />
+
+        <!-- JWT Token Validation for OAuth scenarios -->
+        <choose>
+            <when condition="@(context.Request.Headers.GetValueOrDefault("Authorization","").StartsWith("Bearer "))">
+                <validate-jwt header-name="Authorization"
+                             failed-validation-httpcode="401"
+                             failed-validation-error-message="Unauthorized. Valid JWT token required.">
+                    <openid-config url="https://login.microsoftonline.com/{tenant-id}/v2.0/.well-known/openid-configuration" />
+                    <audiences>
+                        <audience>https://azure-api.net/authorization-manager</audience>
+                    </audiences>
+                </validate-jwt>
+            </when>
+        </choose>
+
+        <!-- Token Rate Limiting -->
+        <azure-openai-token-limit
+            counter-key="@(context.Subscription.Id)"
+            tokens-per-minute="1000"
+            estimate-prompt-tokens="true"
+            remaining-tokens-variable-name="remainingTokens">
+        </azure-openai-token-limit>
+
+        <!-- Backend Service Configuration -->
+        <set-backend-service backend-id="{backend-id}" />
+
+        <!-- Request Logging -->
+        <set-variable name="requestBody" value="@(context.Request.Body.As<string>(preserveContent: true))" />
+        <set-variable name="requestTimestamp" value="@(DateTime.UtcNow.ToString())" />
+
+        <!-- Custom Headers for Tracing -->
+        <set-header name="X-Request-ID" exists-action="override">
+            <value>@(context.RequestId)</value>
+        </set-header>
+        <set-header name="X-User-ID" exists-action="override">
+            <value>@(context.User?.Id ?? "anonymous")</value>
+        </set-header>
+
+    </inbound>
+
+    <backend>
+        <base />
+    </backend>
+
+    <outbound>
+        <base />
+
+        <!-- Response Headers -->
+        <set-header name="X-Remaining-Tokens" exists-action="override">
+            <value>@((string)context.Variables["remainingTokens"])</value>
+        </set-header>
+
+        <!-- Response Logging -->
+        <set-variable name="responseBody" value="@(context.Response.Body.As<string>(preserveContent: true))" />
+        <set-variable name="responseTimestamp" value="@(DateTime.UtcNow.ToString())" />
+
+        <!-- Log to Application Insights (if configured) -->
+        <choose>
+            <when condition="@(context.Response.StatusCode >= 400)">
+                <trace source="consolidated-policy" severity="error">
+                    <message>@($"Error Response: {context.Response.StatusCode}")</message>
+                    <metadata name="RequestId" value="@(context.RequestId)" />
+                    <metadata name="UserId" value="@(context.User?.Id ?? "anonymous")" />
+                    <metadata name="StatusCode" value="@(context.Response.StatusCode.ToString())" />
+                </trace>
+            </when>
+        </choose>
+
+    </outbound>
+
+    <on-error>
+        <base />
+
+        <!-- Error Logging -->
+        <trace source="consolidated-policy" severity="error">
+            <message>@($"Error: {context.LastError.Message}")</message>
+            <metadata name="RequestId" value="@(context.RequestId)" />
+            <metadata name="ErrorReason" value="@(context.LastError.Reason)" />
+            <metadata name="ErrorMessage" value="@(context.LastError.Message)" />
+        </trace>
+
+        <!-- Custom Error Response -->
+        <return-response>
+            <set-status code="500" reason="Internal Server Error" />
+            <set-header name="Content-Type" exists-action="override">
+                <value>application/json</value>
+            </set-header>
+            <set-body>@{
+                return new JObject(
+                    new JProperty("error", new JObject(
+                        new JProperty("code", "InternalError"),
+                        new JProperty("message", "An error occurred processing your request"),
+                        new JProperty("requestId", context.RequestId)
+                    ))
+                ).ToString();
+            }</set-body>
+        </return-response>
+
+    </on-error>
+</policies>

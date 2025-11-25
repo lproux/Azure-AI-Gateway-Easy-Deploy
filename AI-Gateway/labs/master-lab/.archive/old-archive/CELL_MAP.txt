@@ -1,0 +1,149 @@
+WORKING NOTEBOOK CELL MAP
+Source: master-ai-gateway-fix-MCP.ipynb
+Total Cells: 145
+
+Cell   0 [MD]:  # Master AI Gateway Notebook
+Cell   1 [CODE]: """
+Cell   2 [CODE]: """
+Cell   3 [CODE]: import sys, subprocess, pathlib, shlex
+Cell   4 [CODE]: """
+Cell   5 [CODE]: import json, os, shutil, subprocess, sys, time
+Cell   6 [CODE]: """Helper function to flush MSAL cache when Azure CLI encounters MSAL 
+Cell   7 [CODE]: """
+Cell   8 [CODE]: """Provides a cached az CLI executor with:
+Cell   9 [CODE]: """Utilities for ARM/Bicep deployments via az CLI.
+Cell  10 [CODE]: """Applies one or more API Management policies to the target API using
+Cell  11 [CODE]: """Initializes MCP servers and APIM-routed APIs.
+Cell  12 [CODE]: """High-level Azure operations wrapper consolidating:
+Cell  13 [MD]:  # Section 0 : Consolidated Provisioning & Initialization
+Cell  14 [CODE]: """
+Cell  15 [CODE]: import os, sys, subprocess, pathlib, shlex
+Cell  16 [MD]:  ## ✅ Optimized Execution Order (Cells 1–25 Refactor)
+Cell  17 [MD]:  # DEPLOY AND CONFIG
+Cell  18 [MD]:  ### Environment Standardization
+Cell  19 [MD]:  ### Install Required Packages
+Cell  20 [MD]:  <a id='init'></a>
+Cell  21 [CODE]: import shutil, subprocess, os, sys, textwrap, tempfile
+Cell  22 [MD]:  ### Load Environment Variables from Deployment Output
+Cell  23 [MD]:  ### Master Lab Configuration
+Cell  24 [CODE]: subscription_id = 'd334f2cd-3efd-494e-9fd3-2470b1a13e4c'  # Replace wi
+Cell  25 [MD]:  ### Deployment Helper Functions
+Cell  26 [CODE]: import json
+Cell  27 [MD]:  ### Main Deployment - All 4 Steps
+Cell  28 [CODE]: print('=' * 70)
+Cell  29 [CODE]: from pathlib import Path
+Cell  30 [MD]:  ### Generate .env File
+Cell  31 [CODE]: import os
+Cell  32 [CODE]: import os
+Cell  33 [MD]:  # Master AI Gateway Lab - 25 Labs Consolidated
+Cell  34 [MD]:  The following labs (01-10) cover essential Azure API Management features for AI 
+Cell  35 [MD]:  <a id='lab01'></a>
+Cell  36 [MD]:  ### Test 1: Basic Chat Completion
+Cell  37 [CODE]: print("\n" + "="*80)
+Cell  38 [MD]:  ## Lab 01: Test 1 - Basic Chat Completion
+Cell  39 [MD]:  ### Test 2: Streaming Response
+Cell  40 [CODE]: print('[*] Testing streaming...')
+Cell  41 [MD]:  ### Test 3: Multiple Requests
+Cell  42 [MD]:  <a id='lab02'></a>
+Cell  43 [CODE]: print("\n" + "="*80)
+Cell  44 [CODE]: print("\n" + "="*80)
+Cell  45 [CODE]: import requests, json
+Cell  46 [MD]:  ### Test 1: Load Distribution
+Cell  47 [CODE]: print('Testing load balancing across 3 regions...')
+Cell  48 [MD]:  ### Test 2: Visualize Response Times
+Cell  49 [CODE]: import matplotlib.pyplot as plt
+Cell  50 [MD]:  Implement comprehensive observability using Azure Log Analytics and Application 
+Cell  51 [MD]:  <a id='lab04'></a>
+Cell  52 [CODE]: total_tokens = 0
+Cell  53 [MD]:  <a id='lab05'></a>
+Cell  54 [CODE]: SKIP_DIAGNOSTIC = True  # Set to False to run diagnostic
+Cell  55 [MD]:  <a id='lab06'></a>
+Cell  56 [MD]:  # Access Control Workshop
+Cell  57 [CODE]: import requests, os, subprocess, time
+Cell  58 [CODE]: import requests, os, subprocess, time
+Cell  59 [CODE]: import requests, os, subprocess, time
+Cell  60 [CODE]: import requests, os, time
+Cell  61 [MD]:  ## Troubleshooting
+Cell  62 [MD]:  <a id='lab07'></a>
+Cell  63 [CODE]: def _get_jwt_token():
+Cell  64 [MD]:  <a id='lab08'></a>
+Cell  65 [CODE]: import os
+Cell  66 [MD]:  <a id='lab09'></a>
+Cell  67 [MD]:  ### Prerequisites
+Cell  68 [CODE]: deployment_name = "gpt-4o-mini"
+Cell  69 [MD]:  ---
+Cell  70 [MD]:  """
+Cell  71 [CODE]: """
+Cell  72 [CODE]: """
+Cell  73 [MD]:  ### Lab 14: GitHub Repository Access
+Cell  74 [CODE]: """
+Cell  75 [MD]:  ### Lab 15: GitHub + AI Code Analysis
+Cell  76 [CODE]: """
+Cell  77 [CODE]: """
+Cell  78 [MD]:  ## Section 2 Advanced MCP
+Cell  79 [MD]:  ### Exercise 2.1: MCP Data + AI
+Cell  80 [CODE]: print("📊 Sales Analysis via MCP Excel Server")
+Cell  81 [MD]:  ### Exercise 2.2: Sales Analysis via MCP + AI ONLY
+Cell  82 [CODE]: print("🔍 Verifying MCP Sales Analysis Results")
+Cell  83 [MD]:  If the MCP-based analysis above fails (e.g., due to server issues or file compat
+Cell  84 [MD]:  ### Excersice 2.3 Azure Cost Analysis via MCP
+Cell  85 [CODE]: print("💰 Azure Cost Analysis via MCP Excel Server")
+Cell  86 [MD]:  ### Exercise 2.5: Dynamic Column Analysis
+Cell  87 [CODE]: print("🔄 Dynamic MCP Analysis with User-Defined Columns")
+Cell  88 [MD]:  ### Exercise 2.4 : Function Calling with MCP Tools
+Cell  89 [CODE]: %pip install pywin32
+Cell  90 [MD]:  ## Section 3: Advanced Framework + MCP Integration
+Cell  91 [MD]:  ## Exercise 3.1: Microsoft Agent Framework with MCP
+Cell  92 [MD]:  ### ⚠️ Exercise 3.1: Microsoft Agent Framework with MCP (COMMENTED OUT)
+Cell  93 [MD]:  ## SEMANTIC KERNEL & AUTOGEN
+Cell  94 [CODE]: import time
+Cell  95 [CODE]: import time
+Cell  96 [CODE]: import time
+Cell  97 [CODE]: import time
+Cell  98 [CODE]: import time
+Cell  99 [CODE]: import time
+Cell 100 [MD]:  <a id='autogen'></a>
+Cell 101 [MD]:  ### Semantic Cache Performance
+Cell 102 [CODE]: print("Installing required Azure SDK packages...")
+Cell 103 [CODE]: print("\n" + "="*80)
+Cell 104 [CODE]: print("\n" + "="*80)
+Cell 105 [CODE]: import os
+Cell 106 [CODE]: print("\n" + "="*80)
+Cell 107 [CODE]: print("🔄 Semantic Caching Performance Test")
+Cell 108 [MD]:  ---
+Cell 109 [MD]:  ---
+Cell 110 [MD]:  ### Lab 01: Temperature Variations
+Cell 111 [CODE]: for temp in [0.0, 0.5, 1.0, 1.5, 2.0]:
+Cell 112 [MD]:  ### Lab 01: System Prompts
+Cell 113 [CODE]: system_prompts = [
+Cell 114 [MD]:  ### Lab: Test - Redis Connection
+Cell 115 [CODE]: import redis.asyncio as redis
+Cell 116 [MD]:  ### Lab 14: A2A Agents - Multi-Agent Communication
+Cell 117 [CODE]: print("🤖 Agent-to-Agent (A2A) Communication with Real AutoGen Agents")
+Cell 118 [MD]:  ### Lab 15: OpenAI Agents - Create Assistant
+Cell 119 [CODE]: if 'project_client' not in globals():
+Cell 120 [MD]:  ### Lab 16: AI Agent Service - Multiple Agents
+Cell 121 [CODE]: import time
+Cell 122 [MD]:  ### Lab 18: Function Calling - Multiple Functions
+Cell 123 [CODE]: functions = [
+Cell 124 [MD]:  ### Lab 20: Message Storing - Store and Retrieve
+Cell 125 [CODE]: from azure.cosmos import CosmosClient, PartitionKey
+Cell 126 [MD]:  ### Lab 24: FinOps Framework - Cost Analysis
+Cell 127 [CODE]: costs = []
+Cell 128 [MD]:  <a id='kql'></a>
+Cell 129 [CODE]: from azure.identity import DefaultAzureCredential
+Cell 130 [MD]:  ### Exercise 2.6: AI-Generated Sales Insights
+Cell 131 [MD]:  ### Agent Dependency Note for MCP Labs
+Cell 132 [MD]:  ---
+Cell 133 [MD]:  ## Phase 3, Cell 1: SK Plugin for Gateway-Routed Function Calling
+Cell 134 [CODE]: """
+Cell 135 [MD]:  ## Phase 3, Cell 2: SK Streaming Chat with Function Calling
+Cell 136 [CODE]: """
+Cell 137 [MD]:  ## Phase 3, Cell 3: AutoGen Multi-Agent Conversation via APIM
+Cell 138 [CODE]: """
+Cell 139 [MD]:  ## Phase 3, Cell 4: SK Agent with Custom Azure OpenAI Client
+Cell 140 [CODE]: """
+Cell 141 [MD]:  ## Phase 3, Cell 5: SK Vector Search with Gateway-Routed Embeddings
+Cell 142 [CODE]: """
+Cell 143 [MD]:  ## Phase 3, Cell 6: SK + AutoGen Hybrid Orchestration
+Cell 144 [CODE]: """

@@ -1,0 +1,71 @@
+================================================================================
+DEEP ANALYSIS: OUTPUTS AND ERRORS (Cells 1-41)
+================================================================================
+
+================================================================================
+ERROR SUMMARY
+================================================================================
+✅ No execution errors found in cells 1-41
+
+================================================================================
+WARNING SUMMARY
+================================================================================
+
+Cell 23:
+  ⚠️  ⚠️  MCP Client already initialized with all 5 servers. Skipping re-initialization.
+
+================================================================================
+MISSING ENVIRONMENT VARIABLES
+================================================================================
+  Cell 9: APIM_SERVICE, API_ID
+
+================================================================================
+MISSING FILES
+================================================================================
+✅ No missing file references detected in outputs
+
+================================================================================
+EXECUTION SUCCESS RATE (Cells 1-41)
+================================================================================
+Code cells: 29
+Successful executions (with ✅/[OK]): 11
+Success rate: 37.9%
+
+================================================================================
+DUPLICATE FUNCTIONALITY ANALYSIS
+================================================================================
+
+Environment Loader cells: [2, 3, 13, 41]
+  ISSUE: 4 implementations of the same functionality
+
+Azure CLI Resolver cells: [5, 11, 17, 18, 27, 31, 32]
+  ISSUE: 7 implementations of the same functionality
+
+Deployment Helper cells: [8, 11, 36, 38]
+  STATUS: 4 cell(s) - DUPLICATE
+
+MCP Initialization cells: [1, 10, 11, 22, 23]
+  STATUS: 5 cell(s) - REDUNDANT
+
+Dependency Installation cells: []
+  ISSUE: 0 implementations of the same functionality
+
+================================================================================
+FILE REFERENCE VALIDATION
+================================================================================
+
+Bicep files:
+  deploy-01-core.bicep: ❌ MISSING
+  deploy-02c-apim-api.bicep: ❌ MISSING
+  deploy-03-supporting.bicep: ❌ MISSING
+  deploy-04-mcp.bicep: ❌ MISSING
+
+Parameter files:
+  params-01-core.json: ❌ MISSING
+  params-03-supporting.json: ❌ MISSING
+
+Other referenced files:
+  requirements.txt: ✅ EXISTS
+  master-lab.env: ✅ EXISTS
+  .azure-credentials.env: ✅ EXISTS
+  notebook_mcp_helpers.py: ✅ EXISTS

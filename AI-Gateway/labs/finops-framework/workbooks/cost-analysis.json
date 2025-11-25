@@ -1,0 +1,44 @@
+{
+  "version": "Notebook/1.0",
+  "items": [
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let llmHeaderLogs = ApiManagementGatewayLlmLog\r\n| where TimeGenerated >= startofmonth(now()) and TimeGenerated <= endofmonth(now())\r\n| where DeploymentName != '';\r\nlet llmLogsWithSubscriptionId = llmHeaderLogs\r\n| join kind=leftouter ApiManagementGatewayLogs on CorrelationId\r\n| project\r\n    SubscriptionName = ApimSubscriptionId, DeploymentName, PromptTokens, CompletionTokens, TotalTokens;\r\nllmLogsWithSubscriptionId\r\n| join kind=inner (\r\n    PRICING_CL\r\n    | summarize arg_max(TimeGenerated, *) by Model\r\n    | project Model, InputTokensPrice, OutputTokensPrice\r\n    )\r\n    on $left.DeploymentName == $right.Model\r\n| extend InputCost = PromptTokens * InputTokensPrice\r\n| extend OutputCost = CompletionTokens * OutputTokensPrice\r\n| summarize\r\n    InputCost = sum(InputCost), OutputCost = sum(OutputCost)\r\n    by SubscriptionName\r\n| extend TotalCost = (InputCost + OutputCost) / 1000\r\n| join kind=inner (\r\n    SUBSCRIPTION_QUOTA_CL\r\n    | summarize arg_max(TimeGenerated, *) by Subscription\r\n    | project Subscription, CostQuota\r\n) on $left.SubscriptionName == $right.Subscription\r\n| project SubscriptionName, CostQuota, TotalCost\r\n\r\n",
+        "size": 2,
+        "timeContext": {
+          "durationMs": 86400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "unstackedbar",
+        "chartSettings": {
+          "xAxis": "SubscriptionName",
+          "showLegend": true
+        }
+      },
+      "name": "query - 0"
+    },
+    {
+      "type": 3,
+      "content": {
+        "version": "KqlItem/1.0",
+        "query": "let llmHeaderLogs = ApiManagementGatewayLlmLog\r\n| where DeploymentName != '';\r\nlet llmLogsWithSubscriptionId = llmHeaderLogs\r\n| join kind=leftouter ApiManagementGatewayLogs on CorrelationId\r\n| project\r\n    TimeGenerated, SubscriptionName = ApimSubscriptionId, DeploymentName, PromptTokens, CompletionTokens, TotalTokens;\r\nllmLogsWithSubscriptionId\r\n| join kind=inner (\r\n    PRICING_CL\r\n    | summarize arg_max(TimeGenerated, *) by Model\r\n    | project Model, InputTokensPrice, OutputTokensPrice\r\n    )\r\n    on $left.DeploymentName == $right.Model\r\n| extend InputCost = PromptTokens * InputTokensPrice\r\n| extend OutputCost = CompletionTokens * OutputTokensPrice\r\n| summarize\r\n    InputCost = sum(InputCost), OutputCost = sum(OutputCost)\r\n    by SubscriptionName, bin(TimeGenerated, 1m)\r\n| extend TotalCost = (InputCost + OutputCost) / 1000\r\n| project TimeGenerated, SubscriptionName, TotalCost\r\n\r\n",
+        "size": 0,
+        "timeContext": {
+          "durationMs": 14400000
+        },
+        "queryType": 0,
+        "resourceType": "microsoft.operationalinsights/workspaces",
+        "visualization": "unstackedbar"
+      },
+      "name": "query - 1"
+    }
+  ],
+  "fallbackResourceIds": [
+    "{workspace-id}"
+  ],
+  "fromTemplateId": "community-Workbooks/Performance/Performance Insights",
+  "$schema": "https://github.com/Microsoft/Application-Insights-Workbooks/blob/master/schema/workbook.json"
+}

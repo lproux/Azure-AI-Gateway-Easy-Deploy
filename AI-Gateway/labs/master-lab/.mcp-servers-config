@@ -1,0 +1,42 @@
+# MCP Server Configuration for Master AI Gateway Lab
+# Updated: 2025-11-25 - Using Container App MCP deployments
+
+# ===========================================
+# APIM Gateway Configuration
+# ===========================================
+APIM_GATEWAY_URL=https://apim-pavavy6pu5hpa.azure-api.net
+APIM_SUBSCRIPTION_KEY=5847c3618b604a0cb1d12eea40763a68
+
+# ===========================================
+# MCP Container App Servers (Direct Access)
+# ===========================================
+# MS Learn Documentation MCP
+DOCS_MCP_URL=https://mcp-ms-learn-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
+
+# Weather MCP Server
+APIM_WEATHER_URL=https://mcp-weather-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
+
+# GitHub MCP Server
+APIM_GITHUB_URL=https://mcp-github-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
+
+# Product Catalog MCP Server
+PRODUCT_CATALOG_URL=https://mcp-product-catalog-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
+
+# Place Order MCP Server
+PLACE_ORDER_URL=https://mcp-place-order-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
+
+# ===========================================
+# Configuration Notes
+# ===========================================
+# Available MCP Servers (5 total):
+#   1. MS Learn - Documentation search and retrieval
+#   2. Weather - Real-time weather data and forecasts
+#   3. GitHub - Repository search and information
+#   4. Product Catalog - Product search
+#   5. Place Order - Order management
+#
+# All servers are Azure Container Apps in uksouth
+# Using direct MCP protocol (JSON-RPC over HTTP)
+#
+# Last Updated: 2025-11-25
+# Resource Group: lab-master-lab
