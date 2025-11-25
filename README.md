@@ -627,6 +627,55 @@ This repository consolidates content from multiple sources:
 
 ---
 
+## 🙏 Acknowledgments
+
+This repository builds upon the outstanding work of multiple teams and contributors from Microsoft and the Azure community. We extend our sincere gratitude to:
+
+### Original Repository Owners & Contributors
+
+**[Azure-Samples/AI-Gateway](https://github.com/Azure-Samples/AI-Gateway)**
+- Created and maintained by the **Microsoft Azure Samples Team**
+- Special thanks to all contributors who developed the comprehensive lab experiences, MCP integration patterns, and production-ready templates
+- This repository forms the foundation of the AI Gateway patterns and the Master Lab experience
+
+**[microsoft/AzureOpenAI-with-APIM](https://github.com/microsoft/AzureOpenAI-with-APIM)**
+- Created and maintained by the **Microsoft Azure API Management Team**
+- Special thanks to the contributors who built the enterprise-grade APIM integration patterns, cost management frameworks, and resiliency implementations
+- This repository provides the production-ready APIM reference architecture
+
+### Azure Product Teams
+
+We thank the following Microsoft Azure teams whose products and documentation made this work possible:
+- **Azure API Management Team** - For the robust gateway service and comprehensive documentation
+- **Azure OpenAI Service Team** - For democratizing access to cutting-edge AI models
+- **Azure AI Foundry Team** - For the unified AI development platform
+- **Azure AI Search Team** - For powerful vector search capabilities
+- **Azure Cache for Redis Team** - For enabling high-performance semantic caching
+- **Azure Cosmos DB Team** - For globally distributed database services
+- **Azure Container Apps Team** - For simplifying MCP server deployments
+- **Azure Monitor Team** - For comprehensive observability tools
+
+### Community Contributors
+
+This consolidated repository benefits from the collective knowledge and feedback of the Azure AI community. Thank you to everyone who:
+- Reported issues and provided feedback
+- Contributed code improvements and bug fixes
+- Shared deployment experiences and best practices
+- Created tutorials and educational content
+
+### Open Source Foundations
+
+We acknowledge the broader ecosystem that makes this work possible:
+- **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/)** - For standardizing AI data source integration
+- **[OpenAI](https://openai.com/)** - For pioneering AI models and APIs
+- **Open Source Community** - For the countless tools, libraries, and frameworks that power modern AI development
+
+---
+
+**Note:** This repository is a consolidation and enhancement of existing open-source projects. All original work retains its respective licenses and attributions. We strive to properly credit all sources and welcome corrections or additions to these acknowledgments.
+
+---
+
 ## 🎓 Support
 
 ### Getting Help
