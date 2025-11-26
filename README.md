@@ -135,6 +135,141 @@ az deployment group create \
 
 ---
 
+## 🎯 Alternative Deployment Paths
+
+### Fast-Track Options for Different Use Cases
+
+#### Option 4: Easy Deploy Notebook ⚡ (Fastest Setup)
+
+**Perfect for:** Quick demonstrations, proof-of-concepts, rapid prototyping
+
+The streamlined version of the Master Lab with **78% reduction in setup complexity**:
+
+```bash
+cd AI-Gateway/labs/master-lab
+# Open: master-ai-gateway-easy-deploy.ipynb
+# Just 34 cells vs 152 in full version
+# Automated deployment via utility modules
+```
+
+**Key Features:**
+- **34 cells** (vs 152 in full Master Lab)
+- **400 lines of code** (89% reduction)
+- **Same infrastructure** as Master Lab
+- **Automated** via `util/deploy_all.py`
+- **Time:** 35-40 minutes deployment
+- **Documentation:** [Easy Deploy Guide](./AI-Gateway/labs/master-lab/EASY_DEPLOY_README.md) | [Quick Start](./AI-Gateway/labs/master-lab/EASY_DEPLOY_QUICKSTART.md)
+
+#### Option 5: Quick Start Modular Labs 🧩 (Learn by Topic)
+
+**Perfect for:** Learning specific features, running independent labs, minimal setup
+
+Run individual 10-minute labs after one-time infrastructure setup:
+
+```bash
+cd AI-Gateway/labs/master-lab/quick_start
+
+# One-time setup (run once)
+# Open: 00-quick-init.ipynb
+
+# Then run any lab independently:
+# 01-access-control.ipynb       (~10 min)
+# 02-semantic-caching.ipynb     (~10 min)
+# 03-message-storing.ipynb      (~10 min)
+# 04-vector-searching.ipynb     (~10 min)
+# 05-model-routing.ipynb        (~10 min)
+# 06-built-in-logging.ipynb     (~10 min)
+# 07-finops-framework.ipynb     (~10 min)
+```
+
+**Key Features:**
+- **Shared initialization** (`shared_init.py`) - no code duplication
+- **Independent labs** - run any lab in any order
+- **Quick iterations** - ~10 minutes per lab
+- **Same infrastructure** - uses Master Lab deployment
+- **Documentation:** [Quick Start Guide](./AI-Gateway/labs/master-lab/quick_start/README.md)
+
+**Comparison:**
+
+| Feature | Master Lab | Easy Deploy | Quick Start Modular | APIM-Focused | Individual Labs |
+|---------|-----------|-------------|---------------------|--------------|-----------------|
+| **Setup Complexity** | High | Low | Minimal | Medium | Low |
+| **Cells/Steps** | 152 | 34 | 10-15 per lab | N/A | Varies |
+| **Best For** | Comprehensive learning | Quick setup | Topic-specific | Production | Single feature |
+| **Time Investment** | 3-4 hours | 1 hour | 10 min/lab | 2 hours | 30-60 min |
+| **Flexibility** | All features | All features | Pick & choose | Production focus | Focused |
+| **Infrastructure** | Full stack | Full stack | Full stack | APIM-centric | Minimal |
+
+---
+
+
+## 🎯 Alternative Deployment Paths
+
+### Fast-Track Options for Different Use Cases
+
+#### Option 4: Easy Deploy Notebook ⚡ (Fastest Setup)
+
+**Perfect for:** Quick demonstrations, proof-of-concepts, rapid prototyping
+
+The streamlined version of the Master Lab with **78% reduction in setup complexity**:
+
+```bash
+cd AI-Gateway/labs/master-lab
+# Open: master-ai-gateway-easy-deploy.ipynb
+# Just 34 cells vs 152 in full version
+# Automated deployment via utility modules
+```
+
+**Key Features:**
+- **34 cells** (vs 152 in full Master Lab)
+- **400 lines of code** (89% reduction)
+- **Same infrastructure** as Master Lab
+- **Automated** via `util/deploy_all.py`
+- **Time:** 35-40 minutes deployment
+- **Documentation:** [Easy Deploy Guide](./AI-Gateway/labs/master-lab/EASY_DEPLOY_README.md) | [Quick Start](./AI-Gateway/labs/master-lab/EASY_DEPLOY_QUICKSTART.md)
+
+#### Option 5: Quick Start Modular Labs 🧩 (Learn by Topic)
+
+**Perfect for:** Learning specific features, running independent labs, minimal setup
+
+Run individual 10-minute labs after one-time infrastructure setup:
+
+```bash
+cd AI-Gateway/labs/master-lab/quick_start
+
+# One-time setup (run once)
+# Open: 00-quick-init.ipynb
+
+# Then run any lab independently:
+# 01-access-control.ipynb       (~10 min)
+# 02-semantic-caching.ipynb     (~10 min)
+# 03-message-storing.ipynb      (~10 min)
+# 04-vector-searching.ipynb     (~10 min)
+# 05-model-routing.ipynb        (~10 min)
+# 06-built-in-logging.ipynb     (~10 min)
+# 07-finops-framework.ipynb     (~10 min)
+```
+
+**Key Features:**
+- **Shared initialization** (`shared_init.py`) - no code duplication
+- **Independent labs** - run any lab in any order
+- **Quick iterations** - ~10 minutes per lab
+- **Same infrastructure** - uses Master Lab deployment
+- **Documentation:** [Quick Start Guide](./AI-Gateway/labs/master-lab/quick_start/README.md)
+
+**Comparison:**
+
+| Feature | Master Lab | Easy Deploy | Quick Start Modular | APIM-Focused | Individual Labs |
+|---------|-----------|-------------|---------------------|--------------|-----------------|
+| **Setup Complexity** | High | Low | Minimal | Medium | Low |
+| **Cells/Steps** | 152 | 34 | 10-15 per lab | N/A | Varies |
+| **Best For** | Comprehensive learning | Quick setup | Topic-specific | Production | Single feature |
+| **Time Investment** | 3-4 hours | 1 hour | 10 min/lab | 2 hours | 30-60 min |
+| **Flexibility** | All features | All features | Pick & choose | Production focus | Focused |
+| **Infrastructure** | Full stack | Full stack | Full stack | APIM-centric | Minimal |
+
+---
+
 ## 📚 Key Features by Area
 
 ### AI-Gateway Labs
@@ -203,6 +338,108 @@ az deployment group create \
 
 ---
 
+## 🚀 Advanced Features by Category
+
+### Cutting-Edge AI Capabilities
+
+<table>
+<tr>
+<td width="50%">
+
+**Real-Time APIs** 🎙️
+- [Realtime Audio](./AI-Gateway/labs/realtime-audio/) - Real-time audio streaming with Azure OpenAI
+- [Realtime MCP Agents](./AI-Gateway/labs/realtime-mcp-agents/) - Combined audio + tool calling
+- WebSocket support for streaming
+- Low-latency voice interactions
+
+</td>
+<td width="50%">
+
+**AI Agent Services** 🤖
+- [Azure AI Agent Service](./AI-Gateway/labs/ai-agent-service/) - Azure AI Foundry integration
+- [OpenAI Agents](./AI-Gateway/labs/openai-agents/) - Direct OpenAI Agents SDK
+- [MCP Integration](./AI-Gateway/labs/model-context-protocol/) - Tool-based agents
+- Multi-agent orchestration patterns
+
+</td>
+</tr>
+</table>
+
+### Multi-Cloud & Model Diversity
+
+<table>
+<tr>
+<td width="33%">
+
+**Azure OpenAI**
+- GPT-4o, GPT-4, GPT-3.5
+- DALL-E 3 (image generation)
+- Embeddings (text-embedding-ada-002)
+- Multi-region deployments
+
+</td>
+<td width="33%">
+
+**AI Foundry Models**
+- [DeepSeek](./AI-Gateway/labs/ai-foundry-deepseek/) integration
+- [AI Foundry SDK](./AI-Gateway/labs/ai-foundry-sdk/) patterns
+- Model marketplace access
+- Custom model deployment
+
+</td>
+<td width="33%">
+
+**Third-Party Models**
+- [AWS Bedrock](./AI-Gateway/labs/aws-bedrock/) via APIM
+- [Google Gemini](./AI-Gateway/labs/gemini-mcp-agents/) with MCP
+- [SLM Self-Hosting](./AI-Gateway/labs/slm-self-hosting/) (Phi-2, etc.)
+- Unified API management
+
+</td>
+</tr>
+</table>
+
+### Enterprise & Production Patterns
+
+<table>
+<tr>
+<td width="50%">
+
+**Zero-Trust Security** 🔒
+- [Private Connectivity](./AI-Gateway/labs/private-connectivity/) - Private endpoints
+- [MCP Client Authorization](./AI-Gateway/labs/mcp-client-authorization/) - OAuth 2.0 flows
+- Managed identity authentication
+- [Secure Responses](./AI-Gateway/labs/secure-responses-api/) - Output validation
+
+</td>
+<td width="50%">
+
+**Production Deployment** 🏭
+- [Zero-to-Production](./AI-Gateway/labs/zero-to-production/) - Complete guide
+- [Fragment-Based Policies](./AI-Gateway/labs/fragment-policies/) - Advanced APIM
+- [Backend Pool (Terraform)](./AI-Gateway/labs/backend-pool-load-balancing-tf/) - IaC alternatives
+- GitOps automation patterns
+
+</td>
+</tr>
+</table>
+
+### DevOps & Automation
+
+**MCP Server Management:**
+- [MCP from API](./AI-Gateway/labs/mcp-from-api/) - Auto-generate from OpenAPI
+- [MCP Registry (API Center)](./AI-Gateway/labs/mcp-registry-apic/) - Centralized registry
+- [MCP Registry (GitHub Workflow)](./AI-Gateway/labs/mcp-registry-apic-github-workflow/) - GitOps automation
+- Automated discovery and deployment
+
+**Infrastructure as Code:**
+- Bicep templates (primary)
+- Terraform variants (alternative)
+- Azure Developer CLI (`azd`) integration
+- CI/CD pipeline examples
+
+---
+
 ## 🏗️ Architecture Patterns
 
 ### Master Lab Architecture
@@ -263,20 +500,81 @@ az deployment group create \
 | **APIM Integration** | [APIM Guide](./AzureOpenAI-with-APIM/README.md) | Enterprise APIM patterns |
 | **AI Gateway Concepts** | [AI Gateway README](./AI-Gateway/README.md) | Overview and concepts |
 
-### Specialized Guides
 
-| Topic | Guide | Details |
-|-------|-------|---------|
-| **MCP Integration** | [MCP Lab](./AI-Gateway/labs/model-context-protocol/) | Model Context Protocol implementation |
-| **OpenAI Agents** | [Agents Lab](./AI-Gateway/labs/openai-agents/) | AI agent orchestration |
-| **Semantic Caching** | [Caching Lab](./AI-Gateway/labs/semantic-caching/) | Redis-backed intelligent caching |
-| **Load Balancing** | [Load Balancing Lab](./AI-Gateway/labs/backend-pool-load-balancing/) | Multi-region distribution |
-| **Cost Management** | [FinOps Lab](./AI-Gateway/labs/finops-framework/) | Budget control & chargeback |
-| **Vector Search** | [Vector Search Lab](./AI-Gateway/labs/vector-searching/) | RAG pattern implementation |
-| **Access Control** | [Security Lab](./AI-Gateway/labs/access-controlling/) | OAuth 2.0 & JWT validation |
-| **Token Monitoring** | [Logging Lab](./AI-Gateway/labs/built-in-logging/) | Usage tracking & analytics |
+## 📚 Complete Labs Index (Categorized by Difficulty)
+
+### 🟢 Beginner Labs (Start Here)
+
+Perfect for getting started with Azure AI Gateway concepts:
+
+| Lab | Focus | Time | Documentation |
+|-----|-------|------|---------------|
+| [Request Forwarding](./AI-Gateway/labs/request-forwarding/) | Basic APIM routing | 20 min | Core concept |
+| [Backend Circuit Breaking](./AI-Gateway/labs/backend-circuit-breaking/) | Resilience patterns | 25 min | Error handling |
+| [Built-in Logging](./AI-Gateway/labs/built-in-logging/) | Observability basics | 30 min | Token tracking |
+| [Access Controlling](./AI-Gateway/labs/access-controlling/) | OAuth 2.0 & JWT | 35 min | Security fundamentals |
+| [Image Generation](./AI-Gateway/labs/image-generation/) | DALL-E integration | 25 min | Vision APIs |
+
+### 🟡 Intermediate Labs (Production Patterns)
+
+Build production-ready features and patterns:
+
+| Lab | Focus | Time | Documentation |
+|-----|-------|------|---------------|
+| [Semantic Caching](./AI-Gateway/labs/semantic-caching/) | Redis-based caching | 40 min | 50-80% cost reduction |
+| [Backend Pool Load Balancing](./AI-Gateway/labs/backend-pool-load-balancing/) | Multi-region routing | 45 min | High availability |
+| [Advanced Load Balancing](./AI-Gateway/labs/advanced-load-balancing/) | Priority routing | 50 min | PTU optimization |
+| [Model Routing](./AI-Gateway/labs/model-routing/) | Dynamic model selection | 40 min | Cost optimization |
+| [Response Streaming](./AI-Gateway/labs/response-streaming/) | Streaming responses | 30 min | Real-time UX |
+| [Vector Searching](./AI-Gateway/labs/vector-searching/) | RAG pattern | 55 min | AI Search integration |
+| [Message Storing](./AI-Gateway/labs/message-storing/) | Cosmos DB storage | 45 min | Compliance & audit |
+| [FinOps Framework](./AI-Gateway/labs/finops-framework/) | Cost management | 50 min | Chargeback models |
+| [Private Connectivity](./AI-Gateway/labs/private-connectivity/) | Private endpoints | 60 min | Zero-trust networking |
+
+### 🔴 Advanced Labs (Cutting-Edge Features)
+
+Explore latest AI capabilities and advanced patterns:
+
+| Lab | Focus | Time | Documentation |
+|-----|-------|------|---------------|
+| [Model Context Protocol](./AI-Gateway/labs/model-context-protocol/) | MCP integration | 60 min | Tool-based AI |
+| [OpenAI Agents](./AI-Gateway/labs/openai-agents/) | Agent orchestration | 65 min | Agentic AI patterns |
+| [AI Agent Service](./AI-Gateway/labs/ai-agent-service/) | Azure AI service | 55 min | Managed agents |
+| [Realtime Audio](./AI-Gateway/labs/realtime-audio/) | Audio streaming | 50 min | Voice interactions |
+| [Realtime MCP Agents](./AI-Gateway/labs/realtime-mcp-agents/) | Combined real-time | 70 min | Advanced agents |
+| [Gemini MCP Agents](./AI-Gateway/labs/gemini-mcp-agents/) | Google Gemini | 60 min | Multi-vendor AI |
+| [AWS Bedrock](./AI-Gateway/labs/aws-bedrock/) | Multi-cloud | 65 min | AWS integration |
+| [AI Foundry DeepSeek](./AI-Gateway/labs/ai-foundry-deepseek/) | DeepSeek models | 45 min | Alternative models |
+| [AI Foundry SDK](./AI-Gateway/labs/ai-foundry-sdk/) | SDK patterns | 50 min | Direct integration |
+| [SLM Self-Hosting](./AI-Gateway/labs/slm-self-hosting/) | Edge deployment | 75 min | On-premises AI |
+
+### 🛠️ DevOps & Automation Labs
+
+Infrastructure, deployment, and operational patterns:
+
+| Lab | Focus | Time | Documentation |
+|-----|-------|------|---------------|
+| [Zero-to-Production](./AI-Gateway/labs/zero-to-production/) | Complete deployment | 90 min | Production guide |
+| [Fragment-Based Policies](./AI-Gateway/labs/fragment-policies/) | Policy management | 55 min | Advanced APIM |
+| [MCP from API](./AI-Gateway/labs/mcp-from-api/) | Auto-generate MCP | 45 min | Automation |
+| [MCP Registry (API Center)](./AI-Gateway/labs/mcp-registry-apic/) | Centralized registry | 50 min | Governance |
+| [MCP Registry (GitHub)](./AI-Gateway/labs/mcp-registry-apic-github-workflow/) | GitOps automation | 60 min | CI/CD integration |
+| [MCP Client Authorization](./AI-Gateway/labs/mcp-client-authorization/) | OAuth flows | 55 min | Advanced security |
+| [Backend Pool (Terraform)](./AI-Gateway/labs/backend-pool-load-balancing-tf/) | IaC alternative | 50 min | Terraform |
+| [Secure Responses API](./AI-Gateway/labs/secure-responses-api/) | Output validation | 40 min | Compliance |
+
+### 📦 All-in-One Experiences
+
+Comprehensive lab bundles:
+
+| Experience | Includes | Time | Best For |
+|------------|----------|------|----------|
+| [Master Lab](./AI-Gateway/labs/master-lab/) | 7 core labs | 3-4 hrs | Comprehensive learning |
+| [Easy Deploy](./AI-Gateway/labs/master-lab/EASY_DEPLOY_README.md) | Streamlined setup | 1 hr | Quick setup |
+| [Quick Start Modular](./AI-Gateway/labs/master-lab/quick_start/) | Independent labs | 10 min/lab | Topic learning |
 
 ---
+
 
 ## 🔧 Prerequisites
 
@@ -301,7 +599,55 @@ az deployment group create \
 - Azure Developer CLI (azd)
 ```
 
-### Quick Setup
+
+### Development Environment Options
+
+Choose the development environment that works best for your workflow:
+
+#### 🌐 GitHub Codespaces (Recommended for Quick Start)
+
+Open this repository directly in a cloud-based development environment with all dependencies pre-installed:
+
+```bash
+# Click "Code" → "Codespaces" → "Create codespace on main"
+# Or use the button:
+```
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/lproux/Azure-AI-Gateway-Easy-Deploy?quickstart=1)
+
+**Pre-configured with:**
+- Python 3.11+
+- Azure CLI
+- Azure Developer CLI (azd)
+- Jupyter kernel
+- All Python dependencies
+
+**Documentation:** [Dev Container README](./AI-Gateway/labs/master-lab/.devcontainer/README.md)
+
+#### 🐳 VS Code Dev Containers (Local Development)
+
+Use Docker-based development containers for consistent local environments:
+
+```bash
+# Prerequisites: Docker Desktop, VS Code, Dev Containers extension
+git clone https://github.com/lproux/Azure-AI-Gateway-Easy-Deploy.git
+cd Azure-AI-Gateway-Easy-Deploy/AI-Gateway/labs/master-lab
+code .
+# VS Code will prompt to "Reopen in Container"
+```
+
+**Benefits:**
+- Isolated, reproducible environment
+- No local Python/tool installation needed
+- Same environment as Codespaces
+- Works offline
+
+#### 💻 Local Setup (Full Control)
+
+Install dependencies directly on your machine:
+
+
+### Quick Setup (Local Installation)
 
 ```bash
 # Install Azure CLI
