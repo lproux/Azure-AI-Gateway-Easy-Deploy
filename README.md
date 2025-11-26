@@ -2,6 +2,31 @@
 
 Comprehensive collection of Azure AI Gateway implementations, Azure OpenAI with API Management patterns, and AI development resources. This repository consolidates production-ready patterns for enterprise AI deployment on Azure.
 
+## Quick Start
+
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/lproux/Azure-AI-Gateway-Easy-Deploy?quickstart=1&devcontainer_path=.devcontainer%2Fdevcontainer.json)
+[![Dev Container](https://img.shields.io/badge/Dev_Container-Ready-blue?logo=docker)](./AI-Gateway/labs/master-lab/.devcontainer)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Azure CLI](https://img.shields.io/badge/Azure_CLI-2.50+-blue.svg)](https://learn.microsoft.com/cli/azure/install-azure-cli)
+
+### Choose Your Development Environment
+
+**Cloud-Based (Recommended for Quick Start)**
+- **GitHub Codespaces**: Click the badge above to launch a complete cloud environment with all dependencies pre-installed
+- No local setup required
+- Ready in 3-5 minutes
+
+**Local Development**
+- **VS Code Dev Container**: Clone repo → Open in VS Code → Reopen in Container
+- Requires Docker Desktop
+- Consistent, isolated environment
+
+**Manual Setup**
+- Install Python 3.11+, Azure CLI, and dependencies
+- Full control, works offline
+
+See [TESTING.md](./AI-Gateway/labs/master-lab/TESTING.md) for detailed setup instructions.
+
 ## Repository Overview
 
 This repository contains **three major implementation areas**, each providing different approaches to building enterprise-grade AI solutions on Azure:
@@ -622,7 +647,10 @@ Open this repository directly in a cloud-based development environment with all 
 - Jupyter kernel
 - All Python dependencies
 
-**Documentation:** [Dev Container README](./AI-Gateway/labs/master-lab/.devcontainer/README.md)
+**Documentation:**
+- [Complete Testing Guide](./AI-Gateway/labs/master-lab/TESTING.md) - Step-by-step setup and troubleshooting
+- [Dev Container README](./AI-Gateway/labs/master-lab/.devcontainer/README.md) - Configuration details
+- [Setup Validation Script](./AI-Gateway/labs/master-lab/validate-setup.sh) - Pre-flight checks
 
 #### 🐳 VS Code Dev Containers (Local Development)
 
