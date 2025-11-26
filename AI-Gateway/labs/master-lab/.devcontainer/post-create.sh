@@ -172,8 +172,10 @@ alias testapi='curl -X POST'
 alias testjwt='python -c "import jwt; print(jwt.__version__)"'
 
 # Lab shortcuts
-alias notebook='code master-ai-gateway-fix-MCP-clean-documented-final.ipynb'
+alias notebook='code master-ai-gateway-easy-deploy.ipynb'
+alias notebook-full='code master-ai-gateway-fix-MCP-clean-documented-final.ipynb'
 alias readme='code README.md'
+alias testing='code TESTING.md'
 alias docs='code NOTEBOOK_DOCUMENTATION_README.md'
 
 EOF
@@ -220,20 +222,17 @@ This workspace directory is for your lab exercises and experimentation.
 - `mcpinspect` - Launch MCP Inspector
 - `mcptest` - Run pytest
 
-## Main Notebook
+## Main Notebooks
 
-The main notebook is: `master-ai-gateway-fix-MCP-clean-documented-final.ipynb`
+**Easy Deploy (Recommended)**: `master-ai-gateway-easy-deploy.ipynb`
+- Total cells: 34 (78% reduction from full version)
+- One-command deployment with modular utilities
+- Covers all 7 labs with minimal code
 
-Total cells: 152
-Sections:
-- Section 0: Initialization & Deployment (cells 1-27)
-- Lab 08: Access Control (cells 28-37)
-- Lab 09: Semantic Caching (cells 38-44)
-- Lab 10: Message Storing (cells 45-49)
-- Lab 11: Vector Search (cells 50-62)
-- Lab 02: Load Balancing (cells 63-94)
-- Lab 06: MCP Integration (cells 95-119)
-- Lab 12: Built-in Logging (cells 120-152)
+**Full Version**: `master-ai-gateway-fix-MCP-clean-documented-final.ipynb`
+- Total cells: 152
+- Detailed step-by-step deployment
+- Comprehensive documentation and examples
 
 ## Documentation
 
@@ -274,20 +273,23 @@ echo ""
 echo "Quick Start:"
 echo "  1. Navigate to lab: ${GREEN}lab${NC}"
 echo "  2. Login to Azure: ${GREEN}azlogin${NC}"
-echo "  3. Open notebook: ${GREEN}notebook${NC}"
+echo "  3. Open easy deploy: ${GREEN}notebook${NC}"
 echo ""
 echo "Available Commands:"
-echo "  • ${GREEN}lab${NC}        - Go to lab directory"
-echo "  • ${GREEN}notebook${NC}   - Open master-ai-gateway-fix-MCP-clean-documented-final.ipynb"
-echo "  • ${GREEN}azlogin${NC}    - Login to Azure"
-echo "  • ${GREEN}mcprun${NC}     - Run MCP HTTP server"
-echo "  • ${GREEN}nb${NC}         - Start Jupyter server"
+echo "  • ${GREEN}lab${NC}           - Go to lab directory"
+echo "  • ${GREEN}notebook${NC}      - Open master-ai-gateway-easy-deploy.ipynb (34 cells)"
+echo "  • ${GREEN}notebook-full${NC} - Open full version (152 cells)"
+echo "  • ${GREEN}testing${NC}       - Open TESTING.md guide"
+echo "  • ${GREEN}azlogin${NC}       - Login to Azure"
+echo "  • ${GREEN}mcprun${NC}        - Run MCP HTTP server"
+echo "  • ${GREEN}nb${NC}            - Start Jupyter server"
 echo ""
 echo "Documentation:"
-echo "  • ~/lab-workspace/README.md"
-echo "  • master-ai-gateway-fix-MCP-clean-documented-final.ipynb (152 cells)"
-echo "  • NOTEBOOK_DOCUMENTATION_README.md"
+echo "  • TESTING.md - Comprehensive testing guide"
+echo "  • README.md - Lab overview"
+echo "  • ~/lab-workspace/README.md - Workspace commands"
 echo ""
-echo -e "Total cells in notebook: ${GREEN}152${NC}"
+echo -e "Easy Deploy notebook: ${GREEN}34 cells${NC} (78% reduction)"
+echo -e "Full notebook: ${GREEN}152 cells${NC}"
 echo -e "7 labs consolidated: ${GREEN}✓${NC}"
 echo ""
