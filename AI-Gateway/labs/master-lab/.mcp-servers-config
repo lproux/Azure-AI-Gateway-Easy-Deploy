@@ -8,14 +8,22 @@ APIM_GATEWAY_URL=https://apim-pavavy6pu5hpa.azure-api.net
 APIM_SUBSCRIPTION_KEY=5847c3618b604a0cb1d12eea40763a68
 
 # ===========================================
+# External API Keys
+# ===========================================
+# OpenWeather API Key (get yours at https://openweathermap.org/api)
+OPENWEATHER_API_KEY=61a0d2510acec285ff43e1b8dc1bfd04
+
+# ===========================================
 # MCP Container App Servers (Primary)
 # ===========================================
 
 # Weather MCP Server
 APIM_WEATHER_URL=https://mcp-weather-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
 
-# GitHub MCP Server
-APIM_GITHUB_URL=https://mcp-github-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
+# GitHub REST API (direct to api.github.com)
+# Note: The Container App runs the MCP stdio server which doesn't support HTTP
+# Using GitHub's public API directly for REST calls
+APIM_GITHUB_URL=https://api.github.com
 
 # Product Catalog MCP Server
 PRODUCT_CATALOG_URL=https://mcp-product-catalog-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io

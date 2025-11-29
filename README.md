@@ -647,7 +647,49 @@ Open this repository directly in a cloud-based development environment with all 
 - Jupyter kernel
 - All Python dependencies
 
+**Post-Launch Setup (Required):**
+
+After opening your Codespace, run the setup script to configure Azure authentication and Cosmos DB access:
+
+```bash
+# Run the automated setup script
+./setup-codespace.sh
+```
+
+This script will:
+1. Install required Python packages
+2. Prompt for Azure login (use device code authentication)
+3. Detect your Codespace IP address
+4. Update Cosmos DB firewall (if already deployed)
+5. Add missing environment variables
+
+**Manual Setup Alternative:**
+```bash
+# 1. Install Python dependencies
+pip install --user python-dotenv azure-identity azure-mgmt-resource azure-cosmos openai requests
+
+# 2. Login to Azure
+az login --use-device-code
+
+# 3. Set your subscription
+az account set --subscription "YOUR_SUBSCRIPTION_ID"
+
+# 4. Get your Codespace IP (for Cosmos DB firewall)
+curl -s ifconfig.me
+```
+
+**After Deployment:** If you've already deployed resources, update Cosmos DB firewall:
+```bash
+CURRENT_IP=$(curl -s ifconfig.me)
+az cosmosdb update \
+  --name YOUR_COSMOS_ACCOUNT \
+  --resource-group YOUR_RESOURCE_GROUP \
+  --ip-range-filter "$CURRENT_IP,104.42.195.92,40.76.54.131,52.176.6.30,52.169.50.45,52.187.184.26,0.0.0.0" \
+  --public-network-access Enabled
+```
+
 **Documentation:**
+- [Codespaces Setup Guide](./AI-Gateway/labs/master-lab/CODESPACES_SETUP.md) - Detailed setup and troubleshooting
 - [Complete Testing Guide](./AI-Gateway/labs/master-lab/TESTING.md) - Step-by-step setup and troubleshooting
 - [Dev Container README](./AI-Gateway/labs/master-lab/.devcontainer/README.md) - Configuration details
 - [Setup Validation Script](./AI-Gateway/labs/master-lab/validate-setup.sh) - Pre-flight checks
@@ -1065,11 +1107,14 @@ We acknowledge the broader ecosystem that makes this work possible:
 
 | Issue | Solution |
 |-------|----------|
-| Authentication failed | Run `az login` and verify subscription |
+| Authentication failed | Run `az login --use-device-code` (Codespaces) or `az login` |
 | Quota exceeded | Request increase in Azure Portal > Quotas |
 | Deployment timeout | APIM takes 30-45 min (normal), check `az deployment group show` |
-| Module not found | Reinstall: `pip install -r requirements.txt` |
+| Module not found | Reinstall: `pip install --user -r requirements.txt` then restart kernel |
 | MCP server errors | Check Container Apps logs: `az containerapp logs show` |
+| Cosmos DB Forbidden | Add Codespace IP to firewall: `./setup-codespace.sh` |
+| MCP tool not calling | Add `tool_choice="required"` to force tool calling |
+| LOG_ANALYTICS_CUSTOMER_ID missing | Run `./setup-codespace.sh` or see [Codespaces Setup Guide](./AI-Gateway/labs/master-lab/CODESPACES_SETUP.md) |
 
 ---
 
@@ -1129,6 +1174,6 @@ az group delete --name <rg-name> --yes --no-wait
 
 **🚀 Ready to build enterprise-grade AI solutions on Azure!**
 
-Last Updated: 2025-11-25
-Version: 2.0.0
+Last Updated: 2025-11-29
+Version: 2.1.0
 Maintained by: [LP Roux](https://github.com/lproux)
