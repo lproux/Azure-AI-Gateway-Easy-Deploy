@@ -1334,7 +1334,7 @@ def deploy_complete_infrastructure(
             apim_gateway_url=step1_outputs.get('apimGatewayUrl', ''),
             apim_service_name=step1_outputs.get('apimServiceName', ''),
             apim_subscriptions=step1_outputs.get('apimSubscriptions', []),
-            apim_subscription_key=step1_outputs.get('apimSubscriptions', [{}])[0].get('primaryKey', ''),
+            apim_subscription_key=step1_outputs.get('apimSubscriptions', [{}])[0].get('key', ''),
 
             # AI Foundry
             foundry1_endpoint=step2_outputs.get('foundry1Endpoint', ''),
@@ -1423,6 +1423,127 @@ def deploy_complete_infrastructure(
             ))
 
         raise
+
+
+# =============================================================================
+# UTILITY FUNCTIONS FOR EXISTING DEPLOYMENTS
+# =============================================================================
+
+def get_apim_subscription_key(subscription_id: str, resource_group: str, apim_service_name: str) -> str:
+    """
+    Retrieve APIM subscription key from an existing deployment.
+
+    Use this when the deployment already exists but the key wasn't captured.
+    """
+    import subprocess
+    import json
+
+    try:
+        # Get subscription ID if not provided
+        if not subscription_id:
+            result = subprocess.run(
+                ['az', 'account', 'show', '--query', 'id', '-o', 'tsv'],
+                capture_output=True, text=True, check=True
+            )
+            subscription_id = result.stdout.strip()
+
+        # Get APIM subscriptions via REST API
+        url = (f"https://management.azure.com/subscriptions/{subscription_id}"
+               f"/resourceGroups/{resource_group}/providers/Microsoft.ApiManagement"
+               f"/service/{apim_service_name}/subscriptions?api-version=2022-08-01")
+
+        result = subprocess.run(
+            ['az', 'rest', '--method', 'get', '--url', url],
+            capture_output=True, text=True, check=True
+        )
+
+        subscriptions = json.loads(result.stdout).get('value', [])
+
+        # Get the first subscription's key
+        if subscriptions:
+            sub_name = subscriptions[0].get('name', '')
+
+            # List secrets for this subscription
+            secrets_url = (f"https://management.azure.com/subscriptions/{subscription_id}"
+                          f"/resourceGroups/{resource_group}/providers/Microsoft.ApiManagement"
+                          f"/service/{apim_service_name}/subscriptions/{sub_name}"
+                          f"/listSecrets?api-version=2022-08-01")
+
+            result = subprocess.run(
+                ['az', 'rest', '--method', 'post', '--url', secrets_url],
+                capture_output=True, text=True, check=True
+            )
+
+            secrets = json.loads(result.stdout)
+            return secrets.get('primaryKey', '')
+
+        return ''
+    except Exception as e:
+        logger.warning(f"Could not retrieve APIM subscription key: {e}")
+        return ''
+
+
+def refresh_env_file_with_apim_key(env_file_path: str = None):
+    """
+    Update an existing master-lab.env file with the APIM subscription key.
+
+    Call this if APIM_SUBSCRIPTION_KEY is empty in the env file.
+    """
+    from pathlib import Path
+    from dotenv import dotenv_values
+
+    # Find env file
+    if env_file_path is None:
+        search_paths = [
+            Path(__file__).parent.parent / 'master-lab.env',
+            Path.cwd() / 'master-lab.env',
+            Path.cwd() / 'AI-Gateway' / 'labs' / 'master-lab' / 'master-lab.env',
+        ]
+        for path in search_paths:
+            if path.exists():
+                env_file_path = str(path)
+                break
+
+    if not env_file_path or not Path(env_file_path).exists():
+        logger.error("Could not find master-lab.env file")
+        return False
+
+    # Load current values
+    env_values = dotenv_values(env_file_path)
+
+    # Check if key is already set
+    if env_values.get('APIM_SUBSCRIPTION_KEY'):
+        logger.info("APIM_SUBSCRIPTION_KEY is already set")
+        return True
+
+    # Get required values
+    apim_name = env_values.get('APIM_SERVICE_NAME')
+    resource_group = env_values.get('RESOURCE_GROUP', 'lab-master-lab')
+    subscription_id = env_values.get('SUBSCRIPTION_ID', '')
+
+    if not apim_name:
+        logger.error("APIM_SERVICE_NAME not found in env file")
+        return False
+
+    # Get the key
+    logger.info(f"Retrieving APIM subscription key for {apim_name}...")
+    key = get_apim_subscription_key(subscription_id, resource_group, apim_name)
+
+    if not key:
+        logger.error("Could not retrieve APIM subscription key")
+        return False
+
+    # Update the env file
+    env_values['APIM_SUBSCRIPTION_KEY'] = key
+
+    with open(env_file_path, 'w') as f:
+        f.write(f"# Azure AI Gateway Lab Environment\n")
+        f.write(f"# Updated: {datetime.now().isoformat()}\n\n")
+        for k, v in sorted(env_values.items()):
+            f.write(f"{k}={v or ''}\n")
+
+    logger.info(f"✅ APIM_SUBSCRIPTION_KEY updated in {env_file_path}")
+    return True
 
 
 # =============================================================================

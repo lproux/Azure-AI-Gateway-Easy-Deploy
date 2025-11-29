@@ -53,12 +53,27 @@ def load_environment():
     if env_file and env_file.exists():
         load_dotenv(env_file)
         print(f"✅ Loaded environment from: {env_file}")
+
+        # Check if APIM_SUBSCRIPTION_KEY is missing and try to retrieve it
+        if not os.getenv('APIM_SUBSCRIPTION_KEY') and os.getenv('APIM_SERVICE_NAME'):
+            print("   ⚠️  APIM_SUBSCRIPTION_KEY is empty, attempting to retrieve...")
+            try:
+                from util.deploy_all import refresh_env_file_with_apim_key
+                if refresh_env_file_with_apim_key(str(env_file)):
+                    # Reload the updated env file
+                    load_dotenv(env_file, override=True)
+                    print("   ✅ APIM_SUBSCRIPTION_KEY retrieved and saved")
+            except Exception as e:
+                print(f"   ⚠️  Could not auto-retrieve key: {e}")
+                print("   You may need to manually add APIM_SUBSCRIPTION_KEY to master-lab.env")
+
         return {
             'SUBSCRIPTION_ID': os.getenv('SUBSCRIPTION_ID'),
             'RESOURCE_GROUP': os.getenv('RESOURCE_GROUP'),
             'LOCATION': os.getenv('LOCATION', 'uksouth'),
             'APIM_SERVICE_NAME': os.getenv('APIM_SERVICE_NAME'),
             'APIM_GATEWAY_URL': os.getenv('APIM_GATEWAY_URL'),
+            'APIM_SUBSCRIPTION_KEY': os.getenv('APIM_SUBSCRIPTION_KEY'),
             'AZURE_OPENAI_ENDPOINT': os.getenv('AZURE_OPENAI_ENDPOINT'),
             'COSMOS_ENDPOINT': os.getenv('COSMOS_ENDPOINT'),
             'COSMOS_ACCOUNT_NAME': os.getenv('COSMOS_ACCOUNT_NAME'),
