@@ -121,6 +121,30 @@ pylint>=3.0.0
 mypy>=1.8.0
 
 # ----------------------------------------------------------------------------
+# Language Servers (Python-based)
+# ----------------------------------------------------------------------------
+# Type checkers and LSP servers
+basedpyright>=1.0.0           # Pyright fork with additional features
+pyright>=1.1.0                # Microsoft's Python type checker
+python-lsp-server>=1.10.0     # Python LSP (replaces python-language-server)
+jedi-language-server>=0.40.0  # Jedi-based Python LSP
+pyrefly>=0.1.0                # Python language server
+
+# Note: The following are NOT pip packages:
+# - bash-language-server (npm)
+# - dockerfile-language-server-nodejs (npm)
+# - typescript-language-server (npm)
+# - yaml-language-server (npm)
+# - sql-language-server (npm)
+# - vscode-css-languageserver-bin (npm)
+# - vscode-html-languageserver-bin (npm)
+# - vscode-json-languageserver-bin (npm)
+# - unified-language-server (npm)
+# - texlab (Rust/cargo)
+# - r-languageserver (R package)
+# - julia-language-server (Julia package)
+
+# ----------------------------------------------------------------------------
 # Additional Utilities
 # ----------------------------------------------------------------------------
 tqdm>=4.66.0
