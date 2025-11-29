@@ -1,13 +1,17 @@
 // Deploy Step 4: MCP Servers
 // - Container Registry
 // - Container Apps Environment
-// - 5 MCP Server Container Apps (removed oncall & spotify - no reliable public images)
+// - 7 MCP Server Container Apps (weather, github, product-catalog, place-order, ms-learn, excel, docs)
+// - 4 MCP Server Container Instances (excel, docs, weather, github - for redundancy)
 
 targetScope = 'resourceGroup'
 
 // Parameters
 @description('Primary location')
 param location string = 'uksouth'
+
+@description('Secondary location for ACI deployments')
+param aciLocation string = 'eastus'
 
 @description('Log Analytics Customer ID from Step 1')
 param logAnalyticsCustomerId string
@@ -16,21 +20,27 @@ param logAnalyticsCustomerId string
 @secure()
 param logAnalyticsPrimarySharedKey string
 
+@description('External ACR for Excel/Docs MCP images')
+param externalAcrServer string = 'acrmcpwksp321028.azurecr.io'
+
 // Variables
 var resourceSuffix = uniqueString(subscription().id, resourceGroup().id)
 var shortSuffix = take(resourceSuffix, 10)  // Use shorter suffix for container app names (max 32 chars total)
 
-// MCP Servers - 5 total (2 with real images, 3 placeholders)
+// MCP Servers for Container Apps - 7 total
 var mcpServers = [
   'weather'
   'github'
   'product-catalog'
   'place-order'
   'ms-learn'
+  'excel'
+  'docs'
 ]
 
 // MCP Server Docker Images
 // - Real images for weather, github (public Docker Hub / ghcr.io)
+// - Excel/Docs from external ACR (acrmcpwksp321028)
 // - Placeholder for product-catalog, place-order, ms-learn (demo only)
 var mcpServerImages = {
   weather: 'mcp/openweather:latest'
@@ -38,7 +48,34 @@ var mcpServerImages = {
   'product-catalog': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
   'place-order': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
   'ms-learn': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
+  excel: '${externalAcrServer}/excel-analytics-mcp:v4'
+  docs: '${externalAcrServer}/research-docs-mcp:v2'
 }
+
+// MCP Server ports (most use 8080, excel/docs use 8000)
+var mcpServerPorts = {
+  weather: 8080
+  github: 8080
+  'product-catalog': 8080
+  'place-order': 8080
+  'ms-learn': 8080
+  excel: 8000
+  docs: 8000
+}
+
+// ACI deployments for redundancy (excel, docs, weather, github)
+var aciServers = [
+  {
+    name: 'excel'
+    image: '${externalAcrServer}/excel-analytics-mcp:v4'
+    port: 8000
+  }
+  {
+    name: 'docs'
+    image: '${externalAcrServer}/research-docs-mcp:v2'
+    port: 8000
+  }
+]
 
 // Resources
 
@@ -87,7 +124,7 @@ resource containerAppEnv 'Microsoft.App/managedEnvironments@2023-11-02-preview' 
   }
 }
 
-// 5. MCP Container Apps (5 servers)
+// 5. MCP Container Apps (7 servers)
 resource mcpContainerApps 'Microsoft.App/containerApps@2023-11-02-preview' = [for server in mcpServers: {
   name: 'mcp-${server}-${shortSuffix}'
   location: location
@@ -102,7 +139,7 @@ resource mcpContainerApps 'Microsoft.App/containerApps@2023-11-02-preview' = [fo
     configuration: {
       ingress: {
         external: true
-        targetPort: 8080
+        targetPort: mcpServerPorts[server]
         allowInsecure: false
       }
       registries: [
@@ -116,7 +153,7 @@ resource mcpContainerApps 'Microsoft.App/containerApps@2023-11-02-preview' = [fo
       containers: [
         {
           name: server
-          image: mcpServerImages[server]  // Use real images for weather/github, placeholder for others
+          image: mcpServerImages[server]
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
@@ -134,11 +171,82 @@ resource mcpContainerApps 'Microsoft.App/containerApps@2023-11-02-preview' = [fo
   ]
 }]
 
+// 6. MCP Container Instances (ACI) for redundancy - Excel and Docs
+resource mcpContainerInstances 'Microsoft.ContainerInstance/containerGroups@2023-05-01' = [for server in aciServers: {
+  name: '${server.name}-mcp-master'
+  location: aciLocation
+  properties: {
+    containers: [
+      {
+        name: '${server.name}-mcp'
+        properties: {
+          image: server.image
+          ports: [
+            {
+              port: server.port
+              protocol: 'TCP'
+            }
+          ]
+          resources: {
+            requests: {
+              cpu: 1
+              memoryInGB: json('1.5')
+            }
+          }
+        }
+      }
+    ]
+    osType: 'Linux'
+    restartPolicy: 'Always'
+    ipAddress: {
+      type: 'Public'
+      ports: [
+        {
+          port: server.port
+          protocol: 'TCP'
+        }
+      ]
+      dnsNameLabel: '${server.name}-mcp-master'
+    }
+    imageRegistryCredentials: [
+      {
+        server: externalAcrServer
+        username: 'acrmcpwksp321028'
+        password: '' // Note: This needs to be provided at deployment time
+      }
+    ]
+  }
+}]
+
 // Outputs
 output containerRegistryName string = containerRegistry.name
 output containerRegistryLoginServer string = containerRegistry.properties.loginServer
 output containerAppEnvId string = containerAppEnv.id
+
+// Container Apps URLs
 output mcpServerUrls array = [for (server, i) in mcpServers: {
   name: server
   url: 'https://${mcpContainerApps[i].properties.configuration.ingress.fqdn}'
+  type: 'containerApp'
 }]
+
+// Container Instances URLs
+output mcpAciUrls array = [for (server, i) in aciServers: {
+  name: server.name
+  url: 'http://${mcpContainerInstances[i].properties.ipAddress.fqdn}:${server.port}'
+  type: 'containerInstance'
+}]
+
+// Combined MCP URLs for easy consumption
+output allMcpUrls array = concat(
+  [for (server, i) in mcpServers: {
+    name: server
+    url: 'https://${mcpContainerApps[i].properties.configuration.ingress.fqdn}'
+    type: 'containerApp'
+  }],
+  [for (server, i) in aciServers: {
+    name: '${server.name}-aci'
+    url: 'http://${mcpContainerInstances[i].properties.ipAddress.fqdn}:${server.port}'
+    type: 'containerInstance'
+  }]
+)

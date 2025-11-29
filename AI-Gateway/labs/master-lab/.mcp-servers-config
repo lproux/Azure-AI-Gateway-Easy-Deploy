@@ -1,5 +1,5 @@
 # MCP Server Configuration for Master AI Gateway Lab
-# Updated: 2025-11-25 - Using Container App MCP deployments
+# Updated: 2025-11-29 - Added Excel MCP and ACI redundancy URLs
 
 # ===========================================
 # APIM Gateway Configuration
@@ -8,10 +8,8 @@ APIM_GATEWAY_URL=https://apim-pavavy6pu5hpa.azure-api.net
 APIM_SUBSCRIPTION_KEY=5847c3618b604a0cb1d12eea40763a68
 
 # ===========================================
-# MCP Container App Servers (Direct Access)
+# MCP Container App Servers (Primary)
 # ===========================================
-# MS Learn Documentation MCP
-DOCS_MCP_URL=https://mcp-ms-learn-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
 
 # Weather MCP Server
 APIM_WEATHER_URL=https://mcp-weather-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
@@ -25,18 +23,42 @@ PRODUCT_CATALOG_URL=https://mcp-product-catalog-pavavy6pu5.niceriver-900455a0.uk
 # Place Order MCP Server
 PLACE_ORDER_URL=https://mcp-place-order-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
 
+# MS Learn Documentation MCP
+MS_LEARN_URL=https://mcp-ms-learn-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
+DOCS_MCP_URL=https://mcp-ms-learn-pavavy6pu5.niceriver-900455a0.uksouth.azurecontainerapps.io
+
+# ===========================================
+# Excel & Docs MCP (Container Instances - ACI)
+# ===========================================
+
+# Excel Analytics MCP Server (ACI)
+EXCEL_MCP_URL=http://excel-mcp-master.eastus.azurecontainer.io:8000
+
+# Research Docs MCP Server (ACI)
+DOCS_MCP_ACI_URL=http://docs-mcp-master.eastus.azurecontainer.io:8000
+
+# ===========================================
+# ACI Redundancy URLs (Fallback)
+# ===========================================
+WEATHER_MCP_ACI_URL=http://weather-mcp-test.eastus.azurecontainer.io:8080
+GITHUB_MCP_ACI_URL=http://github-mcp-test.eastus.azurecontainer.io:8080
+
 # ===========================================
 # Configuration Notes
 # ===========================================
-# Available MCP Servers (5 total):
-#   1. MS Learn - Documentation search and retrieval
-#   2. Weather - Real-time weather data and forecasts
-#   3. GitHub - Repository search and information
-#   4. Product Catalog - Product search
-#   5. Place Order - Order management
+# Available MCP Servers (7 total):
+#   1. Weather - Real-time weather data and forecasts
+#   2. GitHub - Repository search and information
+#   3. Product Catalog - Product search
+#   4. Place Order - Order management
+#   5. MS Learn - Documentation search and retrieval
+#   6. Excel Analytics - Excel file analysis and data extraction
+#   7. Research Docs - Document research and summarization
 #
-# All servers are Azure Container Apps in uksouth
-# Using direct MCP protocol (JSON-RPC over HTTP)
+# Container Apps: 5 servers in uksouth (weather, github, product-catalog, place-order, ms-learn)
+# Container Instances: 4 servers in eastus (excel, docs, weather-test, github-test)
 #
-# Last Updated: 2025-11-25
+# All servers use MCP protocol (JSON-RPC over HTTP)
+#
+# Last Updated: 2025-11-29
 # Resource Group: lab-master-lab
