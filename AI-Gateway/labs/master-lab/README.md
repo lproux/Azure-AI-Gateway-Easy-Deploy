@@ -119,6 +119,21 @@ export AZURE_SUBSCRIPTION_ID="<subscription-id>"
 ### Managed Identity (For Azure-Hosted)
 Automatically used when running on Azure compute.
 
+## Important: Deployment Timing
+
+**APIM deployment takes 30-45 minutes.** The notebook cells that save `master-lab.env` must complete before running lab exercises.
+
+### Verify deployment is complete before proceeding:
+```bash
+# Check deployment status
+az deployment group show \
+  --name master-lab-01-core \
+  --resource-group lab-master-lab \
+  --query properties.provisioningState
+```
+
+Wait for output to show `"Succeeded"` before running subsequent cells.
+
 ## Troubleshooting
 
 | Issue | Solution |
@@ -128,6 +143,8 @@ Automatically used when running on Azure compute.
 | Deployment timeout | APIM takes 30-45 min (normal) |
 | Module not found | `pip install -r requirements.txt` then restart kernel |
 | Cosmos DB Forbidden | Add your IP to Cosmos DB firewall |
+| `KeyError: 'APIM_GATEWAY_URL'` | Re-run the cell that saves `master-lab.env` after deployment completes |
+| `master-lab.env` not found | Ensure you ran all Section 0 cells in order |
 
 ### Check Deployment Status
 ```bash
