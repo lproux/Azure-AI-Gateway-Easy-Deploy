@@ -98,12 +98,17 @@ DEFAULT_SECONDARY_MODELS = [
 ]
 
 MCP_SERVERS = [
-    {'name': 'weather', 'image': 'mcp/openweather:latest'},
-    {'name': 'github', 'image': 'ghcr.io/github/github-mcp-server:latest'},
-    {'name': 'product-catalog', 'image': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'},
-    {'name': 'place-order', 'image': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'},
-    {'name': 'ms-learn', 'image': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'},
+    {'name': 'weather', 'image': 'mcp/openweather:latest', 'port': 8080},
+    {'name': 'github', 'image': 'ghcr.io/github/github-mcp-server:latest', 'port': 8080},
+    {'name': 'product-catalog', 'image': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest', 'port': 8080},
+    {'name': 'place-order', 'image': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest', 'port': 8080},
+    {'name': 'ms-learn', 'image': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest', 'port': 8080},
+    {'name': 'excel', 'image': 'acrmcpwksp321028.azurecr.io/excel-analytics-mcp:v4', 'port': 8000},
+    {'name': 'docs', 'image': 'acrmcpwksp321028.azurecr.io/research-docs-mcp:v2', 'port': 8000},
 ]
+
+# External ACR for Excel/Docs MCP images
+EXTERNAL_ACR_SERVER = 'acrmcpwksp321028.azurecr.io'
 
 AI_FOUNDRY_REGIONS = [
     {'short_name': 'foundry1', 'location': 'uksouth', 'is_primary': True},
@@ -211,7 +216,8 @@ class ResourceOutputs:
     # Optional
     content_safety_endpoint: Optional[str] = None
     content_safety_key: Optional[str] = None
-    mcp_server_urls: Optional[Dict[str, str]] = None
+    mcp_server_urls: Optional[Dict[str, str]] = None  # Container Apps URLs
+    mcp_aci_urls: Optional[Dict[str, str]] = None     # Container Instances URLs
 
     # Infrastructure
     log_analytics_workspace_id: str = ''
@@ -284,17 +290,64 @@ CONTAINER_REGISTRY_NAME={self.container_registry_name}
 CONTAINER_REGISTRY_LOGIN_SERVER={self.container_registry_login_server}
 """
 
-        # Add MCP Server URLs
+        # Add MCP Server URLs (Container Apps)
         if self.mcp_server_urls:
-            env_content += "\n# ===== MCP Server URLs =====\n"
+            env_content += "\n# ===== MCP Server URLs (Container Apps) =====\n"
             for server_name, url in self.mcp_server_urls.items():
                 env_var_name = f"MCP_{server_name.upper().replace('-', '_')}_URL"
+                env_content += f"{env_var_name}={url}\n"
+
+        # Add MCP ACI URLs (Container Instances)
+        if self.mcp_aci_urls:
+            env_content += "\n# ===== MCP Server URLs (Container Instances - Redundancy) =====\n"
+            for server_name, url in self.mcp_aci_urls.items():
+                env_var_name = f"MCP_{server_name.upper().replace('-', '_')}_ACI_URL"
                 env_content += f"{env_var_name}={url}\n"
 
         with open(file_path, 'w') as f:
             f.write(env_content)
 
         logger.info(f"Environment file written to: {file_path}")
+
+    def to_mcp_config_file(self, file_path: str):
+        """Generate .mcp-servers-config file for notebook_mcp_helpers.py"""
+        config_content = f"""# MCP Servers Configuration
+# Generated: {self.deployment_timestamp}
+# This file is read by notebook_mcp_helpers.py for MCP client initialization
+
+"""
+
+        # Map MCP server names to expected config variable names
+        # notebook_mcp_helpers.py expects these specific names
+        config_mapping = {
+            'weather': 'APIM_WEATHER_URL',
+            'github': 'APIM_GITHUB_URL',
+            'product-catalog': 'PRODUCT_CATALOG_URL',
+            'place-order': 'PLACE_ORDER_URL',
+            'ms-learn': 'MS_LEARN_URL',
+            'excel': 'EXCEL_MCP_URL',
+            'docs': 'DOCS_MCP_URL',
+        }
+
+        # Write Container Apps URLs (primary)
+        config_content += "# ===== Primary MCP Server URLs (Container Apps) =====\n"
+        if self.mcp_server_urls:
+            for server_name, url in self.mcp_server_urls.items():
+                config_var = config_mapping.get(server_name, f"MCP_{server_name.upper().replace('-', '_')}_URL")
+                config_content += f"{config_var}={url}\n"
+
+        # Write ACI URLs (redundancy/fallback)
+        if self.mcp_aci_urls:
+            config_content += "\n# ===== Fallback MCP Server URLs (Container Instances) =====\n"
+            for server_name, url in self.mcp_aci_urls.items():
+                config_var = config_mapping.get(server_name, f"MCP_{server_name.upper().replace('-', '_')}_URL")
+                # Use _ACI suffix for fallback URLs
+                config_content += f"{config_var}_ACI={url}\n"
+
+        with open(file_path, 'w') as f:
+            f.write(config_content)
+
+        logger.info(f"MCP config file written to: {file_path}")
 
     def to_json(self, file_path: str):
         """Save outputs to JSON file"""
@@ -1314,11 +1367,17 @@ def deploy_complete_infrastructure(
             container_registry_name=step4_outputs.get('containerRegistryName', ''),
             container_registry_login_server=step4_outputs.get('containerRegistryLoginServer', ''),
 
-            # MCP Server URLs
+            # MCP Server URLs (Container Apps)
             mcp_server_urls={
                 item['name']: item['url']
                 for item in step4_outputs.get('mcpServerUrls', [])
             } if step4_outputs else None,
+
+            # MCP Server URLs (Container Instances - ACI)
+            mcp_aci_urls={
+                item['name']: item['url']
+                for item in step4_outputs.get('mcpAciUrls', [])
+            } if step4_outputs and step4_outputs.get('mcpAciUrls') else None,
 
             # Metadata
             deployment_timestamp=datetime.now().isoformat(),
@@ -1328,6 +1387,9 @@ def deploy_complete_infrastructure(
 
         # Save complete outputs
         outputs.to_json('deployment-outputs.json')
+
+        # Save MCP config file for notebook_mcp_helpers.py
+        outputs.to_mcp_config_file('.mcp-servers-config')
 
         elapsed = time.time() - start_time
         logger.info("=" * 70)
