@@ -453,24 +453,26 @@ class APIMGitHubClient:
         commits = client.list_repository_commits("microsoft", "semantic-kernel")
     """
 
-    def __init__(self, base_url: str, subscription_key: str):
+    def __init__(self, base_url: str, subscription_key: str = None):
         """
         Initialize GitHub API client
 
         Args:
-            base_url: APIM GitHub API base URL (e.g., https://apim-xxx.azure-api.net/github)
-            subscription_key: APIM subscription key
+            base_url: GitHub API base URL (e.g., https://api.github.com or APIM endpoint)
+            subscription_key: APIM subscription key (optional, not needed for public GitHub API)
         """
         self.base_url = base_url.rstrip('/')
         self.subscription_key = subscription_key
         self.headers = {
-            'Ocp-Apim-Subscription-Key': subscription_key,
             'Accept': 'application/vnd.github+json',
             'User-Agent': 'Notebook-MCP-Helper'
         }
+        # Only add APIM header if subscription key is provided
+        if subscription_key:
+            self.headers['Ocp-Apim-Subscription-Key'] = subscription_key
 
     def _get(self, endpoint: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
-        """Internal GET request to GitHub API through APIM"""
+        """Internal GET request to GitHub API (direct or through APIM)"""
         url = f"{self.base_url}/{endpoint.lstrip('/')}"
         response = httpx.get(url, headers=self.headers, params=params, timeout=30.0)
         response.raise_for_status()
