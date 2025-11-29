@@ -27,10 +27,30 @@ def load_environment():
     """
     Load environment variables from master-lab.env
     Returns: dict of loaded environment variables
-    """
-    env_file = Path(__file__).parent.parent / 'master-lab.env'
 
-    if env_file.exists():
+    Searches for master-lab.env in these locations (in order):
+    1. Notebook directory (AI-Gateway/labs/master-lab/)
+    2. Repository root (/workspaces/Azure-AI-Gateway-Easy-Deploy/)
+    3. Current working directory
+    """
+    # Define search locations
+    notebook_dir = Path(__file__).parent.parent
+    repo_root = notebook_dir.parent.parent.parent  # AI-Gateway -> labs -> master-lab -> repo root
+
+    search_paths = [
+        notebook_dir / 'master-lab.env',                    # Notebook directory
+        repo_root / 'master-lab.env',                       # Repository root
+        Path.cwd() / 'master-lab.env',                      # Current working directory
+    ]
+
+    # Find the first existing env file
+    env_file = None
+    for path in search_paths:
+        if path.exists():
+            env_file = path
+            break
+
+    if env_file and env_file.exists():
         load_dotenv(env_file)
         print(f"✅ Loaded environment from: {env_file}")
         return {
