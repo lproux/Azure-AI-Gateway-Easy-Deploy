@@ -136,6 +136,13 @@ def test_mcp_with_llm(client, mcp_client: SimpleMCPClient, model: str = "gpt-4o"
     Returns:
         Final LLM response after tool execution
     """
+    import time
+    import uuid
+    import random
+
+    # Generate unique session ID to avoid semantic cache hits
+    session_id = str(uuid.uuid4())
+
     # Step 1: Get weather tool definition from MCP server
     print("Step 1: Discovering MCP tools...")
     tools_list = mcp_client.list_tools('weather')
@@ -178,35 +185,82 @@ def test_mcp_with_llm(client, mcp_client: SimpleMCPClient, model: str = "gpt-4o"
 
     # Step 2: Ask LLM to use the tools
     print("Step 2: Asking LLM to use MCP tools...")
+    print(f"   Session ID: {session_id[:8]}...")
+
+    # Use unique session ID and varied prompt to avoid semantic cache
+    cities = ["London", "Tokyo", "Paris", "Sydney", "Berlin"]
+    selected_city = random.choice(cities)
 
     messages = [
-        {"role": "user", "content": "What's the current weather in London?"}
+        {"role": "system", "content": f"You are a weather assistant. Session: {session_id}. Always use the weather tool when asked about weather."},
+        {"role": "user", "content": f"[Request {session_id[:8]}] What's the current weather in {selected_city}? Please use the weather tool."}
     ]
 
-    max_retries = 3
+    # Try multiple models with retry logic for load balancing
+    models_to_try = [model, "gpt-4o-mini"] if model != "gpt-4o-mini" else ["gpt-4o-mini"]
+    max_retries = 5
     response = None
+    assistant_message = None
 
-    for attempt in range(max_retries):
-        try:
-            response = client.chat.completions.create(
-                model=model,
-                messages=messages,
-                tools=openai_tools,
-                tool_choice="auto",
-                max_tokens=150
-            )
+    for current_model in models_to_try:
+        for attempt in range(max_retries):
+            try:
+                response = client.chat.completions.create(
+                    model=current_model,
+                    messages=messages,
+                    tools=openai_tools,
+                    tool_choice="required",  # Force tool calling
+                    max_tokens=150
+                )
+
+                # Check for mock/cached response from APIM
+                if response.choices and response.choices[0].message:
+                    content = response.choices[0].message.content or ""
+                    tool_calls = response.choices[0].message.tool_calls
+
+                    # If we got tool calls, success!
+                    if tool_calls:
+                        assistant_message = response.choices[0].message
+                        break
+
+                    # Check for cached responses
+                    if "APIM" in content or "Greetings" in content or "Hello" in content:
+                        print(f"⚠️  Attempt {attempt + 1}: Got cached response, regenerating...")
+                        # Regenerate session ID and prompt
+                        session_id = str(uuid.uuid4())
+                        selected_city = random.choice(cities)
+                        messages = [
+                            {"role": "system", "content": f"You are a weather assistant. Session: {session_id}. Always use the weather tool when asked about weather."},
+                            {"role": "user", "content": f"[Request {session_id[:8]}] What's the current weather in {selected_city}? Please use the weather tool."}
+                        ]
+                        time.sleep(0.3)
+                        continue
+
+                assistant_message = response.choices[0].message
+                if assistant_message.tool_calls:
+                    break  # Success!
+
+            except Exception as e:
+                if "DeploymentNotFound" in str(e) and attempt < max_retries - 1:
+                    print(f"⚠️  Retry {attempt + 1}/{max_retries} ({current_model})...")
+                    time.sleep(0.5)
+                elif attempt == max_retries - 1:
+                    print(f"⚠️  {current_model} not available, trying fallback...")
+                    break
+                else:
+                    raise
+
+        # Check if we got valid tool calls
+        if assistant_message and assistant_message.tool_calls:
             break
-        except Exception as e:
-            if "DeploymentNotFound" in str(e) and attempt < max_retries - 1:
-                print(f"⚠️  Retry {attempt + 1}/{max_retries}...")
-            else:
-                raise
 
-    assistant_message = response.choices[0].message
-
-    if not assistant_message.tool_calls:
-        print("❌ LLM did not request any tool calls")
-        return response.choices[0].message.content
+    if not assistant_message or not assistant_message.tool_calls:
+        content = assistant_message.content if assistant_message else "No response"
+        if "Greetings from APIM" in str(content):
+            print("❌ Got mock response from APIM - backend pool routing issue")
+        else:
+            print("❌ LLM did not request any tool calls")
+        return None
 
     print(f"✅ LLM requested {len(assistant_message.tool_calls)} tool call(s)")
 
@@ -239,13 +293,13 @@ def test_mcp_with_llm(client, mcp_client: SimpleMCPClient, model: str = "gpt-4o"
 
         if use_demo_mode:
             # Simulated MCP response for demo
-            city = arguments.get('city', 'Unknown')
+            city = arguments.get('city', selected_city)
             result = {
                 "city": city,
-                "temperature": 15,
-                "condition": "Partly cloudy",
-                "humidity": 65,
-                "wind_speed": 12,
+                "temperature": random.randint(10, 25),
+                "condition": random.choice(["Partly cloudy", "Sunny", "Overcast", "Light rain"]),
+                "humidity": random.randint(50, 80),
+                "wind_speed": random.randint(5, 20),
                 "note": "Simulated response (MCP servers not available)"
             }
             print(f"   Result (simulated): {str(result)[:150]}...")

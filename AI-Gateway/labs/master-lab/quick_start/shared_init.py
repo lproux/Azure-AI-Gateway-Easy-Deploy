@@ -103,13 +103,20 @@ def get_azure_openai_client(endpoint=None, api_version="2024-10-21"):
     from azure.identity import AzureCliCredential, get_bearer_token_provider
 
     if endpoint is None:
-        endpoint = os.getenv('APIM_GATEWAY_URL') or os.getenv('AZURE_OPENAI_ENDPOINT')
+        # Try OPENAI_ENDPOINT first (has /inference path), then fall back to APIM_GATEWAY_URL
+        endpoint = os.getenv('OPENAI_ENDPOINT') or os.getenv('AZURE_OPENAI_ENDPOINT')
+
+        # If using APIM_GATEWAY_URL, append /inference path
+        if not endpoint:
+            apim_url = os.getenv('APIM_GATEWAY_URL')
+            if apim_url:
+                endpoint = apim_url.rstrip('/') + '/inference'
 
     if not endpoint:
-        raise ValueError("No Azure OpenAI endpoint found. Set APIM_GATEWAY_URL or AZURE_OPENAI_ENDPOINT")
+        raise ValueError("No Azure OpenAI endpoint found. Set OPENAI_ENDPOINT, AZURE_OPENAI_ENDPOINT, or APIM_GATEWAY_URL")
 
-    # Check if APIM subscription key is available
-    apim_key = os.getenv('APIM_SUBSCRIPTION_KEY')
+    # Check if APIM subscription key is available (try both naming conventions)
+    apim_key = os.getenv('APIM_SUBSCRIPTION_KEY') or os.getenv('APIM_API_KEY')
     
     if apim_key:
         # Use APIM subscription key authentication
