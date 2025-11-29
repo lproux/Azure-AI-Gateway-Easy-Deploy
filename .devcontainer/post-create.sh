@@ -118,9 +118,9 @@ cat >> ~/.bashrc <<'EOF'
 
 # Navigation
 alias ll='ls -lah'
-alias masterlab='cd /workspaces/MCP-servers-internalMSFT-and-external/AI-Gateway/labs/master-lab'
-alias labs='cd /workspaces/MCP-servers-internalMSFT-and-external/AI-Gateway/labs'
-alias apim='cd /workspaces/MCP-servers-internalMSFT-and-external/AzureOpenAI-with-APIM'
+alias masterlab='cd /workspaces/Azure-AI-Gateway-Easy-Deploy/AI-Gateway/labs/master-lab'
+alias labs='cd /workspaces/Azure-AI-Gateway-Easy-Deploy/AI-Gateway/labs'
+alias apim='cd /workspaces/Azure-AI-Gateway-Easy-Deploy/AzureOpenAI-with-APIM'
 
 # Git shortcuts
 alias gs='git status'
@@ -144,12 +144,14 @@ alias azapim='az apim list --output table'
 
 # Quick navigation to key files
 alias readme='code README.md'
-alias testing='code AI-Gateway/labs/master-lab/TESTING.md'
 alias notebook='code AI-Gateway/labs/master-lab/master-ai-gateway-easy-deploy.ipynb'
-alias notebookfull='code AI-Gateway/labs/master-lab/master-ai-gateway-fix-MCP-clean-documented-final.ipynb'
+alias notebookfull='code AI-Gateway/labs/master-lab/master-ai-gateway-deploy-from-notebook.ipynb'
 
-# Validation
-alias validate='bash AI-Gateway/labs/master-lab/validate-setup.sh'
+# Azure Developer CLI
+alias azdlogin='azd auth login'
+alias azdenv='azd env list'
+alias azdup='azd up'
+alias azddown='azd down'
 
 EOF
 
@@ -166,42 +168,26 @@ echo -e "${BLUE}═════════════════════�
 echo ""
 echo -e "${YELLOW}Azure AI Gateway Repository Environment Ready${NC}"
 echo ""
-echo "Quick Start Paths:"
+echo "Quick Start:"
 echo ""
 echo "1. ${GREEN}Easy Deploy (Recommended)${NC}"
 echo "   cd AI-Gateway/labs/master-lab"
 echo "   Open: master-ai-gateway-easy-deploy.ipynb"
-echo "   - 34 cells, ~1 hour setup"
 echo ""
 echo "2. ${GREEN}Full Master Lab${NC}"
 echo "   cd AI-Gateway/labs/master-lab"
-echo "   Open: master-ai-gateway-fix-MCP-clean-documented-final.ipynb"
-echo "   - 152 cells, comprehensive experience"
-echo ""
-echo "3. ${GREEN}Individual Labs${NC}"
-echo "   cd AI-Gateway/labs/<lab-name>"
-echo "   - Modular, focused learning"
-echo ""
-echo "4. ${GREEN}APIM Integration${NC}"
-echo "   cd AzureOpenAI-with-APIM"
-echo "   - Production-ready patterns"
+echo "   Open: master-ai-gateway-deploy-from-notebook.ipynb"
 echo ""
 echo "Available Commands:"
 echo "  • ${GREEN}masterlab${NC}    - Go to Master Lab directory"
 echo "  • ${GREEN}labs${NC}         - Browse all labs"
-echo "  • ${GREEN}notebook${NC}     - Open easy deploy notebook (34 cells)"
-echo "  • ${GREEN}notebookfull${NC} - Open full notebook (152 cells)"
-echo "  • ${GREEN}testing${NC}      - Open testing guide"
-echo "  • ${GREEN}validate${NC}     - Run setup validation"
-echo "  • ${GREEN}azlogin${NC}      - Login to Azure"
-echo ""
-echo "Documentation:"
-echo "  • README.md - Repository overview"
-echo "  • AI-Gateway/labs/master-lab/TESTING.md - Complete testing guide"
-echo "  • AI-Gateway/labs/master-lab/README.md - Master Lab documentation"
+echo "  • ${GREEN}notebook${NC}     - Open easy deploy notebook"
+echo "  • ${GREEN}notebookfull${NC} - Open full notebook (150 cells)"
+echo "  • ${GREEN}azlogin${NC}      - Login to Azure CLI"
+echo "  • ${GREEN}azdlogin${NC}     - Login to Azure Developer CLI"
+echo "  • ${GREEN}azdup${NC}        - Run azd up"
 echo ""
 echo "Before starting:"
-echo "  1. Run: ${GREEN}azlogin${NC}"
-echo "  2. Run: ${GREEN}validate${NC} (optional but recommended)"
-echo "  3. Choose your path above"
+echo "  1. Run: ${GREEN}azlogin${NC} or ${GREEN}azdlogin${NC}"
+echo "  2. Open a notebook and run Section 0"
 echo ""
