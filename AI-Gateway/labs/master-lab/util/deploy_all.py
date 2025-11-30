@@ -14,7 +14,7 @@ Usage:
 
     config = DeploymentConfig(
         subscription_id='xxx',
-        resource_group='lab-master-lab'
+        resource_group='rg-master-lab-abc123'  # Use format: rg-master-lab-{suffix}
     )
 
     outputs = deploy_complete_infrastructure(config)
@@ -234,6 +234,9 @@ class ResourceOutputs:
     deployment_timestamp: str = ''
     deployment_duration_seconds: float = 0
     resource_suffix: str = ''
+    subscription_id: str = ''
+    resource_group: str = ''
+    location: str = ''
 
     def to_env_file(self, file_path: str):
         """Generate master-lab.env file"""
@@ -243,9 +246,9 @@ class ResourceOutputs:
 # Resource Suffix: {self.resource_suffix}
 
 # ===== Subscription & Resource Group =====
-SUBSCRIPTION_ID={self.resource_suffix}
-RESOURCE_GROUP=lab-master-lab
-LOCATION=uksouth
+SUBSCRIPTION_ID={self.subscription_id}
+RESOURCE_GROUP={self.resource_group}
+LOCATION={self.location}
 
 # ===== API Management =====
 APIM_SERVICE_NAME={self.apim_service_name}
@@ -1382,7 +1385,10 @@ def deploy_complete_infrastructure(
             # Metadata
             deployment_timestamp=datetime.now().isoformat(),
             deployment_duration_seconds=time.time() - start_time,
-            resource_suffix=config.resource_suffix
+            resource_suffix=config.resource_suffix,
+            subscription_id=config.subscription_id,
+            resource_group=config.resource_group,
+            location=config.location
         )
 
         # Save complete outputs
@@ -1518,11 +1524,15 @@ def refresh_env_file_with_apim_key(env_file_path: str = None):
 
     # Get required values
     apim_name = env_values.get('APIM_SERVICE_NAME')
-    resource_group = env_values.get('RESOURCE_GROUP', 'lab-master-lab')
+    resource_group = env_values.get('RESOURCE_GROUP')
     subscription_id = env_values.get('SUBSCRIPTION_ID', '')
 
     if not apim_name:
         logger.error("APIM_SERVICE_NAME not found in env file")
+        return False
+
+    if not resource_group:
+        logger.error("RESOURCE_GROUP not found in env file")
         return False
 
     # Get the key
@@ -1556,7 +1566,7 @@ def main():
 
     parser = argparse.ArgumentParser(description='Deploy Azure AI Gateway infrastructure')
     parser.add_argument('--subscription-id', required=True, help='Azure subscription ID')
-    parser.add_argument('--resource-group', default='lab-master-lab', help='Resource group name')
+    parser.add_argument('--resource-group', help='Resource group name (auto-generated as rg-master-lab-{suffix} if not provided)')
     parser.add_argument('--location', default='uksouth', help='Primary location')
     parser.add_argument('--suffix', help='Resource name suffix (auto-generated if not provided)')
     parser.add_argument('--skip-mcp', action='store_true', help='Skip MCP server deployment')
@@ -1564,11 +1574,21 @@ def main():
 
     args = parser.parse_args()
 
+    # Auto-generate suffix if not provided
+    suffix = args.suffix
+    if not suffix:
+        suffix = ''.join(random.choices(string.ascii_lowercase + string.digits, k=13))
+
+    # Auto-generate resource group if not provided
+    resource_group = args.resource_group
+    if not resource_group:
+        resource_group = f'rg-master-lab-{suffix}'
+
     config = DeploymentConfig(
         subscription_id=args.subscription_id,
-        resource_group=args.resource_group,
+        resource_group=resource_group,
         location=args.location,
-        resource_suffix=args.suffix,
+        resource_suffix=suffix,
         deploy_mcp_servers=not args.skip_mcp
     )
 

@@ -24,7 +24,7 @@ echo ""
 # Update System
 # ============================================================================
 
-echo -e "${BLUE}[1/6]${NC} Updating system packages..."
+echo -e "${BLUE}[1/7]${NC} Updating system packages..."
 sudo apt-get update -qq > /dev/null 2>&1
 echo -e "${GREEN}✓${NC} System packages updated"
 
@@ -32,7 +32,7 @@ echo -e "${GREEN}✓${NC} System packages updated"
 # Install System Dependencies
 # ============================================================================
 
-echo -e "${BLUE}[2/6]${NC} Installing system dependencies..."
+echo -e "${BLUE}[2/7]${NC} Installing system dependencies..."
 sudo apt-get install -y -qq \
     jq \
     curl \
@@ -50,7 +50,7 @@ echo -e "${GREEN}✓${NC} System dependencies installed"
 # Python Setup (Master Lab Requirements)
 # ============================================================================
 
-echo -e "${BLUE}[3/6]${NC} Setting up Python environment..."
+echo -e "${BLUE}[3/7]${NC} Setting up Python environment..."
 
 # Upgrade pip
 python -m pip install --upgrade pip --quiet
@@ -70,7 +70,7 @@ echo -e "${GREEN}✓${NC} Python environment configured"
 # Node.js Setup
 # ============================================================================
 
-echo -e "${BLUE}[4/6]${NC} Setting up Node.js environment..."
+echo -e "${BLUE}[4/7]${NC} Setting up Node.js environment..."
 
 # Install global npm packages for MCP development
 npm install -g --silent \
@@ -84,7 +84,7 @@ echo -e "${GREEN}✓${NC} Node.js environment configured"
 # Azure CLI Extensions
 # ============================================================================
 
-echo -e "${BLUE}[5/6]${NC} Installing Azure CLI extensions..."
+echo -e "${BLUE}[5/7]${NC} Installing Azure CLI extensions..."
 
 # Install commonly used Azure CLI extensions
 az extension add --name application-insights --yes --only-show-errors 2>/dev/null || true
@@ -94,10 +94,42 @@ az extension add --name api-center --yes --only-show-errors 2>/dev/null || true
 echo -e "${GREEN}✓${NC} Azure CLI extensions installed"
 
 # ============================================================================
+# Azure Login Check
+# ============================================================================
+
+echo -e "${BLUE}[6/7]${NC} Checking Azure authentication..."
+
+# Check if already logged in
+if az account show > /dev/null 2>&1; then
+    ACCOUNT_NAME=$(az account show --query name -o tsv 2>/dev/null)
+    ACCOUNT_USER=$(az account show --query user.name -o tsv 2>/dev/null)
+    echo -e "${GREEN}✓${NC} Already logged in to Azure"
+    echo "  Account: ${ACCOUNT_NAME}"
+    echo "  User: ${ACCOUNT_USER}"
+else
+    echo -e "${YELLOW}⚠${NC}  Not logged in to Azure"
+    echo ""
+    echo -e "${YELLOW}Starting Azure login with device code...${NC}"
+    echo ""
+
+    # Use device code login (works in Codespaces)
+    if az login --use-device-code; then
+        echo ""
+        echo -e "${GREEN}✓${NC} Successfully logged in to Azure"
+        ACCOUNT_NAME=$(az account show --query name -o tsv 2>/dev/null)
+        echo "  Account: ${ACCOUNT_NAME}"
+    else
+        echo ""
+        echo -e "${YELLOW}⚠${NC}  Azure login skipped or failed"
+        echo "  You can login later by running: az login --use-device-code"
+    fi
+fi
+
+# ============================================================================
 # Workspace Configuration
 # ============================================================================
 
-echo -e "${BLUE}[6/6]${NC} Configuring workspace..."
+echo -e "${BLUE}[7/7]${NC} Configuring workspace..."
 
 # Git configuration (if not already set)
 if [ -z "$(git config --global user.name)" ]; then
