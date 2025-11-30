@@ -81,6 +81,20 @@ for azure_logger_name in ['azure', 'azure.core', 'azure.identity', 'azure.mgmt']
     azure_logger.propagate = False
 
 # =============================================================================
+# BASE DIRECTORY - All paths relative to this module's parent (master-lab/)
+# =============================================================================
+
+# This allows the module to work regardless of the current working directory
+# The module is at: master-lab/util/deploy_all.py
+# So parent.parent gives us: master-lab/
+MODULE_DIR = Path(__file__).resolve().parent  # util/
+BASE_DIR = MODULE_DIR.parent  # master-lab/
+
+def get_base_path(relative_path: str) -> Path:
+    """Get absolute path from a path relative to master-lab directory."""
+    return BASE_DIR / relative_path
+
+# =============================================================================
 # DEFAULT CONFIGURATIONS
 # =============================================================================
 
@@ -630,7 +644,7 @@ def _deploy_step1_core(
         return outputs
 
     # Find and compile Bicep template
-    bicep_path = Path('deploy/deploy-01-core.bicep')
+    bicep_path = get_base_path('deploy/deploy-01-core.bicep')
     if not bicep_path.exists():
         raise FileNotFoundError(f"Bicep template not found: {bicep_path}")
 
@@ -868,7 +882,7 @@ def _deploy_step3_supporting(
         return outputs
 
     # Find and compile Bicep template
-    bicep_path = Path('deploy/deploy-03-supporting.bicep')
+    bicep_path = get_base_path('deploy/deploy-03-supporting.bicep')
     if not bicep_path.exists():
         raise FileNotFoundError(f"Bicep template not found: {bicep_path}")
 
@@ -947,7 +961,7 @@ def _deploy_step4_mcp_servers(
         return outputs
 
     # Find and compile Bicep template
-    bicep_path = Path('deploy/deploy-04-mcp.bicep')
+    bicep_path = get_base_path('deploy/deploy-04-mcp.bicep')
     if not bicep_path.exists():
         raise FileNotFoundError(f"Bicep template not found: {bicep_path}")
 
@@ -1111,7 +1125,7 @@ def _apply_message_storage_policy(
         logger.info(f"Applying policy to APIM: {apim_service_name}")
 
         # Read policy template
-        policy_path = Path('policies/backend-pool-with-message-storage-policy.xml')
+        policy_path = get_base_path('policies/backend-pool-with-message-storage-policy.xml')
         if not policy_path.exists():
             logger.warning(f"Policy file not found: {policy_path}")
             return

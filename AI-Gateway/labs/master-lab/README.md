@@ -1,7 +1,7 @@
 # Master AI Gateway Lab
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/lproux/Azure-AI-Gateway-Easy-Deploy?quickstart=1)
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/downloads/)
 
 > **Deploy once, explore 7 comprehensive AI Gateway labs in a single Jupyter notebook**
 
@@ -44,7 +44,7 @@ code master-ai-gateway-deploy-from-notebook.ipynb
 - **Azure OpenAI** access ([Request here](https://aka.ms/oai/access))
 
 ### Tools
-- Python 3.11+
+- Python 3.12+
 - Azure CLI 2.50+
 - VS Code with Jupyter extension
 

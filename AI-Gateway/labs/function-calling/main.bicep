@@ -451,7 +451,7 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
   properties: {
     serverFarmId: hostingPlan.id
     siteConfig: {
-      pythonVersion: '3.11'
+      pythonVersion: '3.12'
       appSettings: [
         {
           name: 'AzureWebJobsStorage'
@@ -470,7 +470,7 @@ resource functionApp 'Microsoft.Web/sites@2022-09-01' = {
           value: 'python'
         }
       ]
-      linuxFxVersion: 'Python|3.11'
+      linuxFxVersion: 'Python|3.12'
     }
     httpsOnly: true
   }

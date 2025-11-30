@@ -6,7 +6,7 @@ Comprehensive collection of Azure AI Gateway implementations, Azure OpenAI with 
 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/lproux/Azure-AI-Gateway-Easy-Deploy?quickstart=1&devcontainer_path=.devcontainer%2Fdevcontainer.json)
 [![Dev Container](https://img.shields.io/badge/Dev_Container-Ready-blue?logo=docker)](./AI-Gateway/labs/master-lab/.devcontainer)
-[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![Azure CLI](https://img.shields.io/badge/Azure_CLI-2.50+-blue.svg)](https://learn.microsoft.com/cli/azure/install-azure-cli)
 
 ### Choose Your Development Environment
@@ -22,7 +22,7 @@ Comprehensive collection of Azure AI Gateway implementations, Azure OpenAI with 
 - Consistent, isolated environment
 
 **Manual Setup**
-- Install Python 3.11+, Azure CLI, and dependencies
+- Install Python 3.12+, Azure CLI, and dependencies
 - Full control, works offline
 
 See [TESTING.md](./AI-Gateway/labs/master-lab/TESTING.md) for detailed setup instructions.
@@ -614,7 +614,7 @@ Comprehensive lab bundles:
 
 ```bash
 # Required
-- Python 3.11 or later
+- Python 3.12 or later
 - Azure CLI 2.50 or later
 - VS Code with Jupyter extension
 
@@ -641,7 +641,7 @@ Open this repository directly in a cloud-based development environment with all 
 [![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/lproux/Azure-AI-Gateway-Easy-Deploy?quickstart=1)
 
 **Pre-configured with:**
-- Python 3.11+
+- Python 3.12+
 - Azure CLI
 - Azure Developer CLI (azd)
 - Jupyter kernel

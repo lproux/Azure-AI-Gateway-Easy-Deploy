@@ -5,7 +5,7 @@ This dev container provides a complete, cross-platform development environment f
 ## Features
 
 ### Base Environment
-- **Python 3.11** (Debian Bullseye)
+- **Python 3.12** (Debian Bullseye)
 - **Node.js 20** for MCP tooling
 - **Git** with GitHub CLI
 - **Docker-in-Docker** for container builds
@@ -225,7 +225,7 @@ For issues or questions:
 
 ## Version Information
 
-- **Python**: 3.11
+- **Python**: 3.12
 - **Node.js**: 20
 - **Azure CLI**: Latest
 - **Git**: Latest

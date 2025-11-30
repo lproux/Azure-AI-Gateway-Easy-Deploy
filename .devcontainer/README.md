@@ -5,8 +5,8 @@ This directory contains the Dev Container configuration for the entire Azure AI 
 ## What's Configured
 
 ### Base Environment
-- **Base Image**: `mcr.microsoft.com/devcontainers/python:1-3.11-bullseye`
-- **Python Version**: 3.11
+- **Base Image**: `mcr.microsoft.com/devcontainers/python:1-3.12-bullseye`
+- **Python Version**: 3.12
 - **Operating System**: Debian Bullseye
 
 ### Installed Tools
@@ -460,4 +460,4 @@ For issues with the Dev Container configuration:
 
 **Last Updated**: 2025-11-26
 **Container Version**: 1.0
-**Base Image**: mcr.microsoft.com/devcontainers/python:1-3.11-bullseye
+**Base Image**: mcr.microsoft.com/devcontainers/python:1-3.12-bullseye

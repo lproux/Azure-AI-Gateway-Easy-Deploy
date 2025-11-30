@@ -76,10 +76,10 @@ if command -v python &> /dev/null; then
     PYTHON_MAJOR=$(echo $PYTHON_VERSION | cut -d. -f1)
     PYTHON_MINOR=$(echo $PYTHON_VERSION | cut -d. -f2)
 
-    if [ "$PYTHON_MAJOR" -ge 3 ] && [ "$PYTHON_MINOR" -ge 11 ]; then
-        check_pass "Python $PYTHON_VERSION (>= 3.11 required)"
+    if [ "$PYTHON_MAJOR" -ge 3 ] && [ "$PYTHON_MINOR" -ge 12 ]; then
+        check_pass "Python $PYTHON_VERSION (>= 3.12 required)"
     else
-        check_fail "Python $PYTHON_VERSION (>= 3.11 required, found $PYTHON_VERSION)"
+        check_fail "Python $PYTHON_VERSION (>= 3.12 required, found $PYTHON_VERSION)"
     fi
 else
     check_fail "Python not found"
@@ -396,7 +396,7 @@ if [ $FAILED -eq 0 ]; then
         echo ""
         echo "Next steps:"
         echo "  1. Open: master-ai-gateway-easy-deploy.ipynb"
-        echo "  2. Select kernel: Python 3.11+"
+        echo "  2. Select kernel: Python 3.12+"
         echo "  3. Run cells sequentially"
         echo ""
         echo "Documentation:"
@@ -422,7 +422,7 @@ else
     echo "Please fix the failed checks before running the notebook."
     echo ""
     echo "Common fixes:"
-    echo "  • Install Python 3.11+: https://www.python.org/downloads/"
+    echo "  • Install Python 3.12+: https://www.python.org/downloads/"
     echo "  • Install Azure CLI: https://learn.microsoft.com/cli/azure/install-azure-cli"
     echo "  • Login to Azure: az login"
     echo "  • Install Python packages: pip install -r requirements.txt"

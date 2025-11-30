@@ -132,11 +132,12 @@ fi
 echo -e "${BLUE}[7/7]${NC} Configuring workspace..."
 
 # Git configuration (if not already set)
+# Use generic defaults - users should set their own name/email
 if [ -z "$(git config --global user.name)" ]; then
-    git config --global user.name "LP Roux"
+    git config --global user.name "Codespace User"
 fi
 if [ -z "$(git config --global user.email)" ]; then
-    git config --global user.email "lproux@users.noreply.github.com"
+    git config --global user.email "codespace@users.noreply.github.com"
 fi
 git config --global init.defaultBranch main
 git config --global core.editor "code --wait"
