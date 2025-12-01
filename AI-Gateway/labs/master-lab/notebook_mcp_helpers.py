@@ -158,11 +158,42 @@ class ExcelAnalyticsMCP:
     def __init__(self, server_url: str):
         self.server_url = server_url
         self._request_id = 0
+        self._session_id = None
+        self._headers = {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream"
+        }
+
+    def _init_session(self):
+        """Initialize MCP session (required by FastMCP 2.x)"""
+        if self._session_id:
+            return
+        response = httpx.post(
+            f"{self.server_url}/excel/mcp",
+            json={
+                "jsonrpc": "2.0",
+                "id": 0,
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2024-11-05",
+                    "capabilities": {},
+                    "clientInfo": {"name": "notebook-helper", "version": "1.0.0"}
+                }
+            },
+            headers=self._headers,
+            timeout=30.0
+        )
+        self._session_id = response.headers.get("mcp-session-id")
 
     def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Internal method to call Excel MCP tools"""
+        self._init_session()
+        headers = self._headers.copy()
+        if self._session_id:
+            headers["Mcp-Session-Id"] = self._session_id
+
         response = httpx.post(
-            f"{self.server_url}/mcp/",
+            f"{self.server_url}/excel/mcp",
             json={
                 "jsonrpc": "2.0",
                 "id": self._next_id(),
@@ -172,11 +203,22 @@ class ExcelAnalyticsMCP:
                     "arguments": arguments
                 }
             },
+            headers=headers,
             timeout=30.0
         )
 
         response.raise_for_status()
-        result = response.json()
+        # FastMCP returns SSE format, parse the data line
+        text = response.text
+        if text.startswith("event:"):
+            for line in text.split("\n"):
+                if line.startswith("data: "):
+                    result = json.loads(line[6:])
+                    break
+            else:
+                result = {}
+        else:
+            result = response.json()
 
         # Check for JSON-RPC error response
         if "error" in result and result["error"] is not None:
@@ -339,7 +381,7 @@ class ResearchDocumentsMCP:
     def _call(self, tool_name: str, arguments: Dict[str, Any]) -> Dict[str, Any]:
         """Internal method to call Docs MCP tools"""
         response = httpx.post(
-            f"{self.server_url}/mcp/",
+            f"{self.server_url}/docs/mcp",
             json={
                 "jsonrpc": "2.0",
                 "id": self._next_id(),
