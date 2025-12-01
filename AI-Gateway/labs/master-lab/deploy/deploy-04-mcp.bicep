@@ -23,6 +23,10 @@ param logAnalyticsPrimarySharedKey string
 @description('External ACR for Excel/Docs MCP images')
 param externalAcrServer string = 'acrmcpwksp321028.azurecr.io'
 
+@description('OpenWeather API Key for weather MCP server (free tier from https://openweathermap.org/api)')
+@secure()
+param owmApiKey string = ''
+
 // Variables
 var resourceSuffix = uniqueString(subscription().id, resourceGroup().id)
 var shortSuffix = take(resourceSuffix, 10)  // Use shorter suffix for container app names (max 32 chars total)
@@ -39,16 +43,18 @@ var mcpServers = [
 ]
 
 // MCP Server Docker Images
-// - Real images for weather, github (public Docker Hub / ghcr.io)
-// - Excel/Docs from external ACR (acrmcpwksp321028)
+// - Weather: Built from local mcp-http-wrappers/weather-mcp, pushed to local ACR
+// - Excel: Built from local mcp-http-wrappers/excel-mcp, pushed to local ACR
+// - Github: Public ghcr.io image
+// - Docs: From external ACR (acrmcpwksp321028) - to be replaced with local build
 // - Placeholder for product-catalog, place-order, ms-learn (demo only)
 var mcpServerImages = {
-  weather: 'mcp/openweather:latest'
+  weather: '${containerRegistry.properties.loginServer}/weather-mcp:latest'
   github: 'ghcr.io/github/github-mcp-server:latest'
   'product-catalog': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
   'place-order': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
   'ms-learn': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
-  excel: '${externalAcrServer}/excel-analytics-mcp:v4'
+  excel: '${containerRegistry.properties.loginServer}/excel-mcp:latest'
   docs: '${externalAcrServer}/research-docs-mcp:v2'
 }
 
@@ -61,6 +67,32 @@ var mcpServerPorts = {
   'ms-learn': 8080
   excel: 8000
   docs: 8000
+}
+
+// MCP Server environment variables
+var mcpServerEnvVars = {
+  weather: !empty(owmApiKey) ? [
+    { name: 'OWM_API_KEY', secretRef: 'owm-api-key' }
+  ] : []
+  github: []
+  'product-catalog': []
+  'place-order': []
+  'ms-learn': []
+  excel: []
+  docs: []
+}
+
+// MCP Server secrets
+var mcpServerSecrets = {
+  weather: !empty(owmApiKey) ? [
+    { name: 'owm-api-key', value: owmApiKey }
+  ] : []
+  github: []
+  'product-catalog': []
+  'place-order': []
+  'ms-learn': []
+  excel: []
+  docs: []
 }
 
 // ACI deployments for redundancy (excel, docs, weather, github)
@@ -148,12 +180,14 @@ resource mcpContainerApps 'Microsoft.App/containerApps@2023-11-02-preview' = [fo
           server: containerRegistry.properties.loginServer
         }
       ]
+      secrets: mcpServerSecrets[server]
     }
     template: {
       containers: [
         {
           name: server
           image: mcpServerImages[server]
+          env: mcpServerEnvVars[server]
           resources: {
             cpu: json('0.25')
             memory: '0.5Gi'
@@ -237,16 +271,4 @@ output mcpAciUrls array = [for (server, i) in aciServers: {
   type: 'containerInstance'
 }]
 
-// Combined MCP URLs for easy consumption
-output allMcpUrls array = concat(
-  [for (server, i) in mcpServers: {
-    name: server
-    url: 'https://${mcpContainerApps[i].properties.configuration.ingress.fqdn}'
-    type: 'containerApp'
-  }],
-  [for (server, i) in aciServers: {
-    name: '${server.name}-aci'
-    url: 'http://${mcpContainerInstances[i].properties.ipAddress.fqdn}:${server.port}'
-    type: 'containerInstance'
-  }]
-)
+// Note: Combined URLs can be computed in the deployment script by merging mcpServerUrls and mcpAciUrls

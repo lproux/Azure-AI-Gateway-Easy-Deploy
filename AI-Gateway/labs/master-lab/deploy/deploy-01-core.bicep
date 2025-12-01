@@ -20,12 +20,12 @@ param apimSubscriptionsConfig array = [
 // Resources
 
 // 1. Log Analytics Workspace
-module lawModule '../../modules/operational-insights/v1/workspaces.bicep' = {
+module lawModule '../../../modules/operational-insights/v1/workspaces.bicep' = {
   name: 'lawModule'
 }
 
 // 2. Application Insights
-module appInsightsModule '../../modules/monitor/v1/appinsights.bicep' = {
+module appInsightsModule '../../../modules/monitor/v1/appinsights.bicep' = {
   name: 'appInsightsModule'
   params: {
     lawId: lawModule.outputs.id
@@ -34,7 +34,7 @@ module appInsightsModule '../../modules/monitor/v1/appinsights.bicep' = {
 }
 
 // 3. API Management
-module apimModule '../../modules/apim/v2/apim.bicep' = {
+module apimModule '../../../modules/apim/v2/apim.bicep' = {
   name: 'apimModule'
   params: {
     apimSku: apimSku

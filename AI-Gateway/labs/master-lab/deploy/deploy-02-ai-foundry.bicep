@@ -62,7 +62,7 @@ var foundry3Models = [
 // Resources
 
 // AI Foundry (3 regions with models)
-module foundryModule '../../modules/cognitive-services/v3/foundry.bicep' = {
+module foundryModule '../../../modules/cognitive-services/v3/foundry.bicep' = {
   name: 'foundryModule'
   params: {
     aiServicesConfig: aiServicesConfig
@@ -77,10 +77,10 @@ module foundryModule '../../modules/cognitive-services/v3/foundry.bicep' = {
 }
 
 // APIM Inference API
-module inferenceAPIModule '../../modules/apim/v2/inference-api.bicep' = {
+module inferenceAPIModule '../../../modules/apim/v2/inference-api.bicep' = {
   name: 'inferenceAPIModule'
   params: {
-    policyXml: loadTextContent('policies/backend-pool-load-balancing-policy.xml')
+    policyXml: loadTextContent('../policies/backend-pool-load-balancing-policy.xml')
     apimLoggerId: apimLoggerId
     appInsightsId: appInsightsId
     appInsightsInstrumentationKey: appInsightsInstrumentationKey

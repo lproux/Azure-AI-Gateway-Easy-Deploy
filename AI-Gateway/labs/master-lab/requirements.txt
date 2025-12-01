@@ -19,6 +19,7 @@ azure-mgmt-resource>=23.0.0
 azure-mgmt-apimanagement>=4.0.0
 azure-mgmt-cognitiveservices>=13.5.0
 azure-mgmt-cosmosdb>=9.0.0
+azure-mgmt-containerregistry>=10.0.0
 azure-core>=1.29.0
 azure-cosmos>=4.5.0
 azure-monitor-query>=1.2.0

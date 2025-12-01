@@ -1,7 +1,7 @@
 // Deploy Step 3: Supporting Services
 // - Redis Enterprise (semantic caching)
 // - Azure Cognitive Search
-// - Cosmos DB
+// - Cosmos DB (with data plane RBAC)
 // - Content Safety
 
 targetScope = 'resourceGroup'
@@ -16,6 +16,9 @@ param redisCacheSku string = 'Balanced_B0'
 @description('Azure Search SKU')
 @allowed(['free', 'basic', 'standard'])
 param searchSku string = 'basic'
+
+@description('Principal ID for Cosmos DB data plane RBAC (e.g., user or service principal object ID)')
+param cosmosDbPrincipalId string = ''
 
 // Variables
 var resourceSuffix = uniqueString(subscription().id, resourceGroup().id)
@@ -91,6 +94,48 @@ resource cosmosAccount 'Microsoft.DocumentDB/databaseAccounts@2024-05-15' = {
       defaultConsistencyLevel: 'Session'
     }
     enableFreeTier: false
+  }
+}
+
+// 4a. Cosmos DB SQL Database for messages
+resource cosmosDatabase 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases@2024-05-15' = {
+  name: 'messages-db'
+  parent: cosmosAccount
+  properties: {
+    resource: {
+      id: 'messages-db'
+    }
+  }
+}
+
+// 4b. Cosmos DB SQL Container for conversations
+resource cosmosContainer 'Microsoft.DocumentDB/databaseAccounts/sqlDatabases/containers@2024-05-15' = {
+  name: 'conversations'
+  parent: cosmosDatabase
+  properties: {
+    resource: {
+      id: 'conversations'
+      partitionKey: {
+        paths: ['/conversationId']
+        kind: 'Hash'
+      }
+    }
+    options: {
+      throughput: 400
+    }
+  }
+}
+
+// 4c. Cosmos DB Data Plane RBAC - Assign Cosmos DB Built-in Data Contributor role
+// Role definition ID 00000000-0000-0000-0000-000000000002 = Cosmos DB Built-in Data Contributor
+// This allows read/write operations on Cosmos DB data plane (required for SDK access with Azure AD)
+resource cosmosDataContributorRole 'Microsoft.DocumentDB/databaseAccounts/sqlRoleAssignments@2024-05-15' = if (!empty(cosmosDbPrincipalId)) {
+  name: guid(cosmosAccount.id, cosmosDbPrincipalId, '00000000-0000-0000-0000-000000000002')
+  parent: cosmosAccount
+  properties: {
+    roleDefinitionId: '${cosmosAccount.id}/sqlRoleDefinitions/00000000-0000-0000-0000-000000000002'
+    principalId: cosmosDbPrincipalId
+    scope: cosmosAccount.id
   }
 }
 
