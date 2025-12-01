@@ -39,25 +39,50 @@ async def health():
 
 
 @app.get("/weather")
-async def get_weather(city: str, units: str = "metric"):
+async def get_weather(
+    city: str = None,
+    country: str = None,
+    q: str = None,
+    appid: str = None,
+    units: str = "metric",
+    raw: bool = True
+):
     """
     Get current weather for a city.
 
+    Supports two parameter styles for compatibility:
+    - Style 1 (MCP): city, country parameters
+    - Style 2 (OpenWeatherMap): q parameter (e.g., "London,GB")
+
     Args:
         city: City name (e.g., "London", "New York", "Tokyo")
+        country: Optional country code (e.g., "GB", "US")
+        q: OpenWeatherMap-style query (e.g., "London,GB") - alternative to city/country
+        appid: Ignored - API key is configured server-side
         units: Temperature units - "metric" (Celsius), "imperial" (Fahrenheit), or "standard" (Kelvin)
+        raw: If True, return raw OpenWeatherMap format (default). If False, return simplified format.
 
     Returns:
         Current weather data for the specified city
     """
     api_key = get_api_key()
 
+    # Support both parameter styles
+    if q:
+        # OpenWeatherMap style: q=London,GB
+        query = q
+    elif city:
+        # MCP style: city=London&country=GB
+        query = f"{city},{country}" if country else city
+    else:
+        raise HTTPException(status_code=400, detail="Either 'city' or 'q' parameter is required")
+
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(
                 f"{OWM_BASE_URL}/weather",
                 params={
-                    "q": city,
+                    "q": query,
                     "appid": api_key,
                     "units": units
                 },
@@ -76,7 +101,11 @@ async def get_weather(city: str, units: str = "metric"):
 
             data = response.json()
 
-            # Format response for MCP-style consumption
+            # Return raw OpenWeatherMap format by default (compatible with notebook helpers)
+            if raw:
+                return data
+
+            # Format response for MCP-style consumption (simplified)
             return {
                 "city": data.get("name"),
                 "country": data.get("sys", {}).get("country"),
@@ -112,25 +141,50 @@ async def get_weather(city: str, units: str = "metric"):
 
 
 @app.get("/forecast")
-async def get_forecast(city: str, units: str = "metric"):
+async def get_forecast(
+    city: str = None,
+    country: str = None,
+    q: str = None,
+    appid: str = None,
+    cnt: int = None,
+    units: str = "metric",
+    raw: bool = True
+):
     """
     Get 5-day weather forecast for a city.
 
+    Supports two parameter styles for compatibility:
+    - Style 1 (MCP): city, country parameters
+    - Style 2 (OpenWeatherMap): q parameter (e.g., "London,GB")
+
     Args:
         city: City name (e.g., "London", "New York", "Tokyo")
+        country: Optional country code (e.g., "GB", "US")
+        q: OpenWeatherMap-style query (e.g., "London,GB") - alternative to city/country
+        appid: Ignored - API key is configured server-side
+        cnt: Number of timestamps to return (max 40)
         units: Temperature units - "metric" (Celsius), "imperial" (Fahrenheit), or "standard" (Kelvin)
+        raw: If True, return raw OpenWeatherMap format (default). If False, return simplified format.
 
     Returns:
         5-day weather forecast with 3-hour intervals
     """
     api_key = get_api_key()
 
+    # Support both parameter styles
+    if q:
+        query = q
+    elif city:
+        query = f"{city},{country}" if country else city
+    else:
+        raise HTTPException(status_code=400, detail="Either 'city' or 'q' parameter is required")
+
     async with httpx.AsyncClient() as client:
         try:
             response = await client.get(
                 f"{OWM_BASE_URL}/forecast",
                 params={
-                    "q": city,
+                    "q": query,
                     "appid": api_key,
                     "units": units
                 },
@@ -149,7 +203,11 @@ async def get_forecast(city: str, units: str = "metric"):
 
             data = response.json()
 
-            # Format forecast data
+            # Return raw OpenWeatherMap format by default (compatible with notebook helpers)
+            if raw:
+                return data
+
+            # Format forecast data (simplified)
             forecasts = []
             for item in data.get("list", []):
                 forecasts.append({

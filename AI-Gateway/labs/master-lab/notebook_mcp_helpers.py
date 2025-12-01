@@ -71,11 +71,17 @@ class MCPClient:
         else:
             self.github = None
 
-        # Weather through APIM (REST API)
+        # Weather through APIM (REST API) or direct MCP server
         apim_weather_url = self.config.get("APIM_WEATHER_URL", "")
-        weather_api_key = self.config.get("OPENWEATHER_API_KEY", "")
+        weather_api_key = self.config.get("OPENWEATHER_API_KEY", "") or self.config.get("OWM_API_KEY", "")
+        mcp_weather_url = self.config.get("MCP_SERVER_WEATHER_URL", "")
+
         if apim_weather_url and apim_key and weather_api_key:
+            # APIM passthrough mode
             self.weather = WeatherAPIClient(apim_weather_url, apim_key, weather_api_key)
+        elif mcp_weather_url:
+            # Direct MCP server mode (API key configured server-side)
+            self.weather = WeatherMCPClient(mcp_weather_url)
         else:
             self.weather = None
 
@@ -834,6 +840,162 @@ class WeatherAPIClient:
                 'lon': weather.get('coord', {}).get('lon'),
                 'country': weather.get('sys', {}).get('country')
             }]
+
+    def format_weather_summary(self, weather_data: Dict[str, Any]) -> str:
+        """
+        Format weather data into a readable summary
+
+        Args:
+            weather_data: Weather data from get_weather()
+
+        Returns:
+            Formatted string summary
+        """
+        try:
+            main = weather_data.get('main', {})
+            weather = weather_data.get('weather', [{}])[0]
+            wind = weather_data.get('wind', {})
+
+            summary = f"""
+Weather Summary for {weather_data.get('name', 'Unknown')}:
+  Condition: {weather.get('description', 'N/A').title()}
+  Temperature: {main.get('temp', 'N/A')}°C (feels like {main.get('feels_like', 'N/A')}°C)
+  Humidity: {main.get('humidity', 'N/A')}%
+  Wind Speed: {wind.get('speed', 'N/A')} m/s
+  Pressure: {main.get('pressure', 'N/A')} hPa
+"""
+            return summary.strip()
+        except Exception as e:
+            return f"Error formatting weather data: {e}"
+
+
+class WeatherMCPClient:
+    """
+    Direct Weather MCP Server client (no APIM passthrough)
+
+    This client connects directly to the Weather MCP HTTP server
+    which has the OpenWeatherMap API key configured server-side.
+
+    Usage:
+        client = WeatherMCPClient(
+            base_url="https://mcp-weather-xxx.azurecontainerapps.io"
+        )
+
+        # Get current weather
+        weather = client.get_weather("London", "GB")
+
+        # Get forecast
+        forecast = client.get_forecast("New York", "US")
+    """
+
+    def __init__(self, base_url: str):
+        """
+        Initialize Weather MCP client
+
+        Args:
+            base_url: Weather MCP server URL (e.g., https://mcp-weather-xxx.azurecontainerapps.io)
+        """
+        self.base_url = base_url.rstrip('/')
+        self.headers = {
+            'User-Agent': 'Notebook-MCP-Helper'
+        }
+
+    def _get(self, endpoint: str, params: Dict[str, Any] = None) -> Dict[str, Any]:
+        """Internal GET request to Weather MCP server"""
+        url = f"{self.base_url}/{endpoint.lstrip('/')}"
+        response = httpx.get(url, headers=self.headers, params=params, timeout=30.0)
+        response.raise_for_status()
+        return response.json()
+
+    def get_weather(
+        self,
+        city: str,
+        country_code: Optional[str] = None,
+        units: str = "metric"
+    ) -> Dict[str, Any]:
+        """
+        Get current weather for a city
+
+        Args:
+            city: City name (e.g., "London", "New York")
+            country_code: Optional ISO 3166 country code (e.g., "GB", "US")
+            units: Temperature units ("metric", "imperial", "standard")
+                   metric = Celsius, imperial = Fahrenheit
+
+        Returns:
+            Dict with weather data including:
+            - temp: Current temperature
+            - feels_like: Feels like temperature
+            - description: Weather description
+            - humidity: Humidity percentage
+            - wind_speed: Wind speed
+        """
+        query = city
+        if country_code:
+            query = f"{city},{country_code}"
+
+        params = {
+            'q': query,
+            'units': units
+        }
+
+        return self._get('weather', params)
+
+    def get_weather_by_coords(
+        self,
+        lat: float,
+        lon: float,
+        units: str = "metric"
+    ) -> Dict[str, Any]:
+        """
+        Get current weather by geographic coordinates
+
+        Args:
+            lat: Latitude
+            lon: Longitude
+            units: Temperature units ("metric", "imperial", "standard")
+
+        Returns:
+            Dict with weather data
+        """
+        params = {
+            'lat': lat,
+            'lon': lon,
+            'units': units
+        }
+
+        return self._get('weather', params)
+
+    def get_forecast(
+        self,
+        city: str,
+        country_code: Optional[str] = None,
+        units: str = "metric",
+        cnt: int = 40
+    ) -> Dict[str, Any]:
+        """
+        Get 5-day weather forecast (3-hour intervals)
+
+        Args:
+            city: City name
+            country_code: Optional ISO 3166 country code
+            units: Temperature units
+            cnt: Number of forecast points (max 40 = 5 days * 8 intervals)
+
+        Returns:
+            Dict with forecast data including list of forecasts
+        """
+        query = city
+        if country_code:
+            query = f"{city},{country_code}"
+
+        params = {
+            'q': query,
+            'units': units,
+            'cnt': min(cnt, 40)  # Max 40 entries (5 days)
+        }
+
+        return self._get('forecast', params)
 
     def format_weather_summary(self, weather_data: Dict[str, Any]) -> str:
         """
