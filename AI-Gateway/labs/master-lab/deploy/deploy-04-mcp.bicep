@@ -20,16 +20,20 @@ param logAnalyticsCustomerId string
 @secure()
 param logAnalyticsPrimarySharedKey string
 
-@description('External ACR for Excel/Docs MCP images')
-param externalAcrServer string = 'acrmcpwksp321028.azurecr.io'
+// External ACR parameter removed - all images now use public registries (MCR/GHCR)
+// param externalAcrServer string = 'acrmcpwksp321028.azurecr.io'
 
 @description('OpenWeather API Key for weather MCP server (free tier from https://openweathermap.org/api)')
 @secure()
 param owmApiKey string = ''
 
+@description('Pre-created ACR name (if provided, uses existing ACR; otherwise creates new one)')
+param existingAcrName string = ''
+
 // Variables
 var resourceSuffix = uniqueString(subscription().id, resourceGroup().id)
 var shortSuffix = take(resourceSuffix, 10)  // Use shorter suffix for container app names (max 32 chars total)
+var useExistingAcr = !empty(existingAcrName)
 
 // MCP Servers for Container Apps - 7 total
 var mcpServers = [
@@ -43,30 +47,30 @@ var mcpServers = [
 ]
 
 // MCP Server Docker Images
-// - Weather: Built from local mcp-http-wrappers/weather-mcp, pushed to local ACR
-// - Excel: Built from local mcp-http-wrappers/excel-mcp, pushed to local ACR
-// - Github: Public ghcr.io image
-// - Docs: From external ACR (acrmcpwksp321028) - to be replaced with local build
-// - Placeholder for product-catalog, place-order, ms-learn (demo only)
+// Weather and Excel use local ACR images (built by deploy_all.py before this deployment)
+// Other servers use public images
 var mcpServerImages = {
-  weather: '${containerRegistry.properties.loginServer}/weather-mcp:latest'
+  weather: '${containerRegistryName}.azurecr.io/weather-mcp:latest'  // Built from mcp-http-wrappers/weather-mcp
   github: 'ghcr.io/github/github-mcp-server:latest'
   'product-catalog': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
   'place-order': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
   'ms-learn': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
-  excel: '${containerRegistry.properties.loginServer}/excel-mcp:latest'
-  docs: '${externalAcrServer}/research-docs-mcp:v2'
+  excel: '${containerRegistryName}.azurecr.io/excel-mcp:latest'  // Built from mcp-http-wrappers/excel-mcp
+  docs: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'  // Placeholder for docs MCP
 }
 
-// MCP Server ports (most use 8080, excel/docs use 8000)
+// Container Registry name - use existing if provided, otherwise generate
+var containerRegistryName = useExistingAcr ? existingAcrName : 'acr${resourceSuffix}'
+
+// MCP Server ports
 var mcpServerPorts = {
   weather: 8080
   github: 8080
   'product-catalog': 8080
   'place-order': 8080
   'ms-learn': 8080
-  excel: 8000
-  docs: 8000
+  excel: 8000  // Excel MCP uses port 8000
+  docs: 8080   // Using placeholder image (port 8080)
 }
 
 // MCP Server environment variables
@@ -95,25 +99,26 @@ var mcpServerSecrets = {
   docs: []
 }
 
-// ACI deployments for redundancy (excel, docs, weather, github)
+// ACI deployments for redundancy (excel, docs)
+// Using local ACR images for excel, placeholder for docs
 var aciServers = [
   {
     name: 'excel'
-    image: '${externalAcrServer}/excel-analytics-mcp:v4'
-    port: 8000
+    image: '${containerRegistryName}.azurecr.io/excel-mcp:latest'  // Built from mcp-http-wrappers/excel-mcp
+    port: 8000  // Excel MCP uses port 8000
   }
   {
     name: 'docs'
-    image: '${externalAcrServer}/research-docs-mcp:v2'
-    port: 8000
+    image: 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'  // Placeholder for docs MCP
+    port: 8080
   }
 ]
 
 // Resources
 
-// 1. Container Registry
-resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = {
-  name: 'acr${resourceSuffix}'
+// 1. Container Registry - create only if not using existing
+resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' = if (!useExistingAcr) {
+  name: containerRegistryName
   location: location
   sku: {
     name: 'Basic'
@@ -123,6 +128,16 @@ resource containerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-pr
     publicNetworkAccess: 'Enabled'
   }
 }
+
+// Reference existing ACR if provided
+resource existingContainerRegistry 'Microsoft.ContainerRegistry/registries@2023-11-01-preview' existing = if (useExistingAcr) {
+  name: existingAcrName
+}
+
+// Helper variable to get the right ACR reference
+// Note: These use conditional expressions that are safe because only one path is evaluated
+var acrLoginServer = useExistingAcr ? existingContainerRegistry.properties.loginServer : containerRegistry!.properties.loginServer
+var acrCredentials = useExistingAcr ? existingContainerRegistry.listCredentials() : containerRegistry!.listCredentials()
 
 // 2. Managed Identity for Container Apps
 resource containerAppUAI 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
@@ -177,7 +192,7 @@ resource mcpContainerApps 'Microsoft.App/containerApps@2023-11-02-preview' = [fo
       registries: [
         {
           identity: containerAppUAI.id
-          server: containerRegistry.properties.loginServer
+          server: acrLoginServer
         }
       ]
       secrets: mcpServerSecrets[server]
@@ -207,7 +222,7 @@ resource mcpContainerApps 'Microsoft.App/containerApps@2023-11-02-preview' = [fo
 
 // 6. MCP Container Instances (ACI) for redundancy - Excel and Docs
 resource mcpContainerInstances 'Microsoft.ContainerInstance/containerGroups@2023-05-01' = [for server in aciServers: {
-  name: '${server.name}-mcp-master'
+  name: '${server.name}-mcp-${shortSuffix}'
   location: aciLocation
   properties: {
     containers: [
@@ -240,21 +255,22 @@ resource mcpContainerInstances 'Microsoft.ContainerInstance/containerGroups@2023
           protocol: 'TCP'
         }
       ]
-      dnsNameLabel: '${server.name}-mcp-master'
+      dnsNameLabel: '${server.name}-mcp-${shortSuffix}'
     }
-    imageRegistryCredentials: [
+    // Credentials for ACR - only needed for excel which uses local ACR image
+    imageRegistryCredentials: server.name == 'excel' ? [
       {
-        server: externalAcrServer
-        username: 'acrmcpwksp321028'
-        password: '' // Note: This needs to be provided at deployment time
+        server: acrLoginServer
+        username: acrCredentials.username
+        password: acrCredentials.passwords[0].value
       }
-    ]
+    ] : []
   }
 }]
 
 // Outputs
-output containerRegistryName string = containerRegistry.name
-output containerRegistryLoginServer string = containerRegistry.properties.loginServer
+output containerRegistryName string = containerRegistryName
+output containerRegistryLoginServer string = acrLoginServer
 output containerAppEnvId string = containerAppEnv.id
 
 // Container Apps URLs

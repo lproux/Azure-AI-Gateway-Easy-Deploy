@@ -112,17 +112,19 @@ DEFAULT_SECONDARY_MODELS = [
 ]
 
 MCP_SERVERS = [
-    {'name': 'weather', 'image': 'mcp/openweather:latest', 'port': 8080},
+    # Weather and Excel images are built from mcp-http-wrappers/ folder and pushed to local ACR
+    # Other servers use public placeholder images
+    {'name': 'weather', 'image': '{acr}/weather-mcp:latest', 'port': 8080},  # Built from mcp-http-wrappers/weather-mcp
     {'name': 'github', 'image': 'ghcr.io/github/github-mcp-server:latest', 'port': 8080},
     {'name': 'product-catalog', 'image': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest', 'port': 8080},
     {'name': 'place-order', 'image': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest', 'port': 8080},
     {'name': 'ms-learn', 'image': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest', 'port': 8080},
-    {'name': 'excel', 'image': 'acrmcpwksp321028.azurecr.io/excel-analytics-mcp:v4', 'port': 8000},
-    {'name': 'docs', 'image': 'acrmcpwksp321028.azurecr.io/research-docs-mcp:v2', 'port': 8000},
+    {'name': 'excel', 'image': '{acr}/excel-mcp:latest', 'port': 8000},  # Built from mcp-http-wrappers/excel-mcp
+    {'name': 'docs', 'image': 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest', 'port': 8080},
 ]
 
-# External ACR for Excel/Docs MCP images
-EXTERNAL_ACR_SERVER = 'acrmcpwksp321028.azurecr.io'
+# Image building is now handled by _build_mcp_images_to_acr function
+# Images are built to the ACR created by the Bicep template
 
 AI_FOUNDRY_REGIONS = [
     {'short_name': 'foundry1', 'location': 'uksouth', 'is_primary': True},
@@ -918,6 +920,156 @@ def _deploy_step3_supporting(
     return outputs
 
 
+def _create_acr_if_not_exists(
+    config: DeploymentConfig,
+    progress_callback: Optional[Callable] = None
+) -> str:
+    """Create Azure Container Registry if it doesn't exist.
+
+    Returns:
+        str: ACR name that was created or already exists
+    """
+    # Generate ACR name using the same suffix pattern as Bicep
+    # Bicep uses: uniqueString(subscription().id, resourceGroup().id)
+    # We'll use a simpler approach based on resource suffix
+    acr_name = f"acr{config.resource_suffix}".replace('-', '')[:24]  # ACR names max 50 chars, alphanumeric only
+
+    logger.info(f"Checking if ACR {acr_name} exists...")
+
+    # Check if ACR exists
+    check_cmd = ['az', 'acr', 'show', '--name', acr_name, '--resource-group', config.resource_group]
+    result = subprocess.run(check_cmd, capture_output=True, text=True)
+
+    if result.returncode == 0:
+        logger.info(f"ACR {acr_name} already exists")
+        return acr_name
+
+    # Create ACR
+    logger.info(f"Creating ACR {acr_name}...")
+
+    if progress_callback:
+        progress_callback(DeploymentProgress(
+            step="Container Registry",
+            status="in_progress",
+            message=f"Creating ACR {acr_name}..."
+        ))
+
+    create_cmd = [
+        'az', 'acr', 'create',
+        '--name', acr_name,
+        '--resource-group', config.resource_group,
+        '--location', config.location,
+        '--sku', 'Basic',
+        '--admin-enabled', 'true'
+    ]
+
+    result = subprocess.run(create_cmd, capture_output=True, text=True, timeout=120)
+
+    if result.returncode == 0:
+        logger.info(f"Successfully created ACR {acr_name}")
+        return acr_name
+    else:
+        logger.error(f"Failed to create ACR: {result.stderr}")
+        raise RuntimeError(f"Failed to create ACR: {result.stderr}")
+
+
+def _build_mcp_images_to_acr(
+    config: DeploymentConfig,
+    acr_name: str,
+    progress_callback: Optional[Callable] = None
+) -> dict:
+    """Build and push MCP server images to Azure Container Registry.
+
+    Builds the weather-mcp and excel-mcp images from the mcp-http-wrappers folder
+    using az acr build (cloud-based build, no local Docker required).
+
+    Returns:
+        dict with image names and tags that were built
+    """
+    logger.info("Building MCP images to ACR...")
+
+    # Define images to build from local Dockerfiles
+    images_to_build = [
+        {
+            'name': 'weather-mcp',
+            'tag': 'latest',
+            'dockerfile_dir': get_base_path('mcp-http-wrappers/weather-mcp'),
+            'port': 8080
+        },
+        {
+            'name': 'excel-mcp',
+            'tag': 'latest',
+            'dockerfile_dir': get_base_path('mcp-http-wrappers/excel-mcp'),
+            'port': 8000
+        }
+    ]
+
+    built_images = {}
+
+    for image_config in images_to_build:
+        image_name = image_config['name']
+        image_tag = image_config['tag']
+        dockerfile_dir = image_config['dockerfile_dir']
+
+        if not dockerfile_dir.exists():
+            logger.warning(f"Dockerfile directory not found: {dockerfile_dir}")
+            logger.warning(f"Skipping {image_name} - using placeholder image instead")
+            continue
+
+        full_image = f"{image_name}:{image_tag}"
+        logger.info(f"Building {full_image} from {dockerfile_dir}...")
+
+        if progress_callback:
+            progress_callback(DeploymentProgress(
+                step="MCP Images",
+                status="in_progress",
+                message=f"Building {image_name} image..."
+            ))
+
+        try:
+            # Use az acr build - builds in cloud, no local Docker needed
+            cmd = [
+                'az', 'acr', 'build',
+                '--registry', acr_name,
+                '--image', full_image,
+                '--file', str(dockerfile_dir / 'Dockerfile'),
+                str(dockerfile_dir)
+            ]
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=600  # 10 minutes timeout for build
+            )
+
+            if result.returncode == 0:
+                logger.info(f"Successfully built {full_image}")
+                built_images[image_name] = {
+                    'image': full_image,
+                    'acr': acr_name,
+                    'full_ref': f"{acr_name}.azurecr.io/{full_image}",
+                    'port': image_config['port']
+                }
+            else:
+                logger.error(f"Failed to build {image_name}: {result.stderr[:500]}")
+                logger.warning(f"Container Apps using {image_name} will use placeholder image")
+
+        except subprocess.TimeoutExpired:
+            logger.error(f"Timeout building {image_name}")
+        except Exception as e:
+            logger.error(f"Error building {image_name}: {e}")
+
+    if progress_callback:
+        progress_callback(DeploymentProgress(
+            step="MCP Images",
+            status="completed",
+            message=f"Built {len(built_images)} MCP images"
+        ))
+
+    return built_images
+
+
 def _deploy_step4_mcp_servers(
     config: DeploymentConfig,
     credential,
@@ -925,7 +1077,13 @@ def _deploy_step4_mcp_servers(
     step1_outputs: dict,
     progress_callback: Optional[Callable]
 ) -> dict:
-    """Deploy Step 4: MCP Servers"""
+    """Deploy Step 4: MCP Servers
+
+    Three-phase deployment:
+    1. Create ACR (if not exists)
+    2. Build MCP images to ACR
+    3. Deploy Container Apps with the built images
+    """
     if not config.deploy_mcp_servers:
         logger.info("MCP server deployment disabled. Skipping...")
         return {}
@@ -933,8 +1091,8 @@ def _deploy_step4_mcp_servers(
     logger.info("=" * 70)
     logger.info("STEP 4: MCP SERVERS")
     logger.info("=" * 70)
-    logger.info("Resources: Container Apps + 5 MCP servers")
-    logger.info("Estimated time: ~5 minutes")
+    logger.info("Resources: Container Registry + Container Apps + MCP servers")
+    logger.info("Estimated time: ~10 minutes (including image builds)")
 
     if progress_callback:
         progress_callback(DeploymentProgress(
@@ -960,6 +1118,56 @@ def _deploy_step4_mcp_servers(
 
         return outputs
 
+    # Phase 1: Create ACR first
+    logger.info("Phase 1: Creating Container Registry...")
+
+    if progress_callback:
+        progress_callback(DeploymentProgress(
+            step="MCP Servers",
+            status="in_progress",
+            message="Phase 1: Creating Container Registry..."
+        ))
+
+    try:
+        acr_name = _create_acr_if_not_exists(config, progress_callback)
+        logger.info(f"ACR ready: {acr_name}")
+    except Exception as e:
+        logger.error(f"Failed to create ACR: {e}")
+        logger.warning("Proceeding with deployment using placeholder images...")
+        acr_name = None
+
+    # Phase 2: Build MCP images to ACR
+    built_images = {}
+    if acr_name:
+        logger.info(f"Phase 2: Building MCP images to ACR ({acr_name})...")
+
+        if progress_callback:
+            progress_callback(DeploymentProgress(
+                step="MCP Images",
+                status="in_progress",
+                message=f"Building MCP images to {acr_name}..."
+            ))
+
+        try:
+            built_images = _build_mcp_images_to_acr(config, acr_name, progress_callback)
+            if built_images:
+                logger.info(f"Built {len(built_images)} MCP images: {list(built_images.keys())}")
+            else:
+                logger.warning("No MCP images were built")
+        except Exception as e:
+            logger.error(f"Error building MCP images: {e}")
+            logger.warning("Proceeding with deployment using placeholder images...")
+
+    # Phase 3: Deploy Container Apps
+    logger.info("Phase 3: Deploying Container Apps...")
+
+    if progress_callback:
+        progress_callback(DeploymentProgress(
+            step="MCP Servers",
+            status="in_progress",
+            message="Phase 3: Deploying Container Apps..."
+        ))
+
     # Find and compile Bicep template
     bicep_path = get_base_path('deploy/deploy-04-mcp.bicep')
     if not bicep_path.exists():
@@ -975,6 +1183,10 @@ def _deploy_step4_mcp_servers(
         'logAnalyticsCustomerId': {'value': step1_outputs.get('logAnalyticsCustomerId', '')},
         'logAnalyticsPrimarySharedKey': {'value': step1_outputs.get('logAnalyticsPrimarySharedKey', '')}
     }
+
+    # If we created and built images to ACR, pass it as a parameter
+    if acr_name:
+        parameters['existingAcrName'] = {'value': acr_name}
 
     success, outputs = deploy_arm_template(
         resource_client,
@@ -1092,6 +1304,128 @@ def _configure_apim_cosmos_rbac(
                 step="APIM Configuration",
                 status="completed",
                 message="RBAC configuration skipped"
+            ))
+
+
+def _configure_user_rbac(
+    config: DeploymentConfig,
+    step3_outputs: dict,
+    progress_callback: Optional[Callable[[DeploymentProgress], None]] = None
+):
+    """
+    Configure RBAC for the signed-in user to access deployed resources.
+
+    This grants the current user the necessary permissions to:
+    - Access Cosmos DB data plane (read/write messages)
+    - Access Cognitive Services (OpenAI models)
+    - Access Azure AI Search
+
+    This is similar to what the reference notebook does with assign_rg_roles
+    and assign_cosmos_data_roles functions.
+    """
+    logger.info("=" * 70)
+    logger.info("POST-DEPLOYMENT: USER RBAC CONFIGURATION")
+    logger.info("=" * 70)
+
+    if progress_callback:
+        progress_callback(DeploymentProgress(
+            step="User RBAC",
+            status="in_progress",
+            message="Granting user access to deployed resources..."
+        ))
+
+    try:
+        # Get the signed-in user's principal ID (Object ID)
+        cmd_get_user = "az ad signed-in-user show --query id -o tsv"
+        result = subprocess.run(cmd_get_user, shell=True, capture_output=True, text=True, timeout=30)
+
+        user_principal_id = None
+        if result.returncode == 0 and result.stdout.strip():
+            user_principal_id = result.stdout.strip()
+            logger.info(f"Signed-in user Principal ID: {user_principal_id[:8]}...")
+        else:
+            logger.warning("Could not get signed-in user ID, skipping user RBAC")
+            return
+
+        rg_scope = f"/subscriptions/{config.subscription_id}/resourceGroups/{config.resource_group}"
+
+        # Resource Group level roles
+        rg_roles = [
+            'Cognitive Services OpenAI User',
+            'Cognitive Services Contributor',
+            'Search Index Data Contributor',
+            'DocumentDB Account Contributor',
+        ]
+
+        logger.info("Assigning Resource Group level roles...")
+        for role in rg_roles:
+            cmd = f'az role assignment create --assignee "{user_principal_id}" --role "{role}" --scope "{rg_scope}" 2>&1'
+            result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=30)
+
+            if result.returncode == 0:
+                logger.info(f"  ✓ {role}")
+            elif 'already exists' in result.stdout.lower() or 'already exists' in result.stderr.lower() or 'conflict' in result.stderr.lower():
+                logger.info(f"  ✓ {role} (already assigned)")
+            else:
+                logger.warning(f"  ✗ {role}: {result.stderr[:60]}")
+
+        # Cosmos DB Data Plane role (requires special handling)
+        cosmos_account_name = step3_outputs.get('cosmosDbAccountName')
+        if cosmos_account_name:
+            logger.info("Assigning Cosmos DB data plane role...")
+
+            # Cosmos DB Built-in Data Contributor role definition ID
+            cosmos_role_def_id = "00000000-0000-0000-0000-000000000002"
+
+            cmd_cosmos_role = f"""
+            az cosmosdb sql role assignment create \
+              --account-name {cosmos_account_name} \
+              --resource-group {config.resource_group} \
+              --principal-id {user_principal_id} \
+              --role-definition-id {cosmos_role_def_id} \
+              --scope "/" 2>&1
+            """
+
+            result = subprocess.run(cmd_cosmos_role, shell=True, capture_output=True, text=True, timeout=60)
+
+            if result.returncode == 0:
+                logger.info("  ✓ Cosmos DB Built-in Data Contributor")
+            elif 'already exists' in result.stdout.lower() or 'already exists' in result.stderr.lower():
+                logger.info("  ✓ Cosmos DB Built-in Data Contributor (already assigned)")
+            else:
+                # Try alternative approach with role name
+                cmd_cosmos_role_alt = f"""
+                az cosmosdb sql role assignment create \
+                  --account-name {cosmos_account_name} \
+                  --resource-group {config.resource_group} \
+                  --principal-id {user_principal_id} \
+                  --role-definition-name "Cosmos DB Built-in Data Contributor" \
+                  --scope "/subscriptions/{config.subscription_id}/resourceGroups/{config.resource_group}/providers/Microsoft.DocumentDB/databaseAccounts/{cosmos_account_name}" 2>&1
+                """
+                result2 = subprocess.run(cmd_cosmos_role_alt, shell=True, capture_output=True, text=True, timeout=60)
+
+                if result2.returncode == 0 or 'already exists' in result2.stdout.lower() or 'already exists' in result2.stderr.lower():
+                    logger.info("  ✓ Cosmos DB Built-in Data Contributor")
+                else:
+                    logger.warning(f"  ✗ Cosmos DB role: {result2.stderr[:80]}")
+
+        if progress_callback:
+            progress_callback(DeploymentProgress(
+                step="User RBAC",
+                status="completed",
+                message="User granted access to all deployed resources"
+            ))
+
+        logger.info("✅ User RBAC configuration complete")
+
+    except Exception as e:
+        logger.warning(f"User RBAC configuration failed: {e}")
+
+        if progress_callback:
+            progress_callback(DeploymentProgress(
+                step="User RBAC",
+                status="completed",
+                message="User RBAC configuration skipped (may require manual setup)"
             ))
 
 
@@ -1338,6 +1672,9 @@ def deploy_complete_infrastructure(
 
         # Post-deployment: Configure RBAC for APIM to access Cosmos DB
         _configure_apim_cosmos_rbac(config, step1_outputs, step3_outputs, progress_callback)
+
+        # Post-deployment: Configure RBAC for signed-in user to access resources
+        _configure_user_rbac(config, step3_outputs, progress_callback)
 
         # Post-deployment: Apply message storage policy
         _apply_message_storage_policy(config, step1_outputs, step3_outputs, progress_callback)

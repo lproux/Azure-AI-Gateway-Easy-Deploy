@@ -19,27 +19,79 @@ from dotenv import load_dotenv
 # Add parent directory to path for accessing master-lab resources
 sys.path.append(str(Path(__file__).parent.parent))
 
+
+# ============================================================================
+# Helper Functions
+# ============================================================================
+
+def _fetch_apim_key_from_azure():
+    """
+    Dynamically fetch APIM subscription key from Azure using az CLI.
+    This is useful when the env file has stale keys.
+    """
+    import json as json_module
+
+    # Get APIM service name and resource group from environment
+    apim_name = os.getenv('APIM_SERVICE_NAME')
+    resource_group = os.getenv('RESOURCE_GROUP')
+    subscription_id = os.getenv('SUBSCRIPTION_ID')
+
+    if not all([apim_name, resource_group, subscription_id]):
+        return None
+
+    try:
+        # Use Azure REST API to get the master subscription key
+        url = (
+            f"https://management.azure.com/subscriptions/{subscription_id}"
+            f"/resourceGroups/{resource_group}/providers/Microsoft.ApiManagement"
+            f"/service/{apim_name}/subscriptions/master/listSecrets?api-version=2022-08-01"
+        )
+
+        result = subprocess.run(
+            ['az', 'rest', '--method', 'post', '--url', url],
+            capture_output=True,
+            text=True,
+            timeout=30
+        )
+
+        if result.returncode == 0:
+            secrets = json_module.loads(result.stdout)
+            key = secrets.get('primaryKey')
+            if key:
+                # Update environment variable for future use in this session
+                os.environ['APIM_SUBSCRIPTION_KEY'] = key
+                print(f"   ℹ️  Fetched fresh APIM key from Azure")
+                return key
+    except Exception as e:
+        pass  # Silently fail - will fall back to Azure CLI auth
+
+    return None
+
+
 # ============================================================================
 # Configuration
 # ============================================================================
 
 def load_environment():
     """
-    Load environment variables from master-lab.env
+    Load environment variables from env file.
     Returns: dict of loaded environment variables
 
-    Searches for master-lab.env in these locations (in order):
-    1. Notebook directory (AI-Gateway/labs/master-lab/)
-    2. Repository root (/workspaces/Azure-AI-Gateway-Easy-Deploy/)
-    3. Current working directory
+    Searches for env files in these locations (in order):
+    1. easy-deploy.env (notebook-specific, created by easy-deploy notebook)
+    2. master-lab.env (reference notebook)
+    3. Repository root locations
     """
     # Define search locations
     notebook_dir = Path(__file__).parent.parent
     repo_root = notebook_dir.parent.parent.parent  # AI-Gateway -> labs -> master-lab -> repo root
 
     search_paths = [
-        notebook_dir / 'master-lab.env',                    # Notebook directory
-        repo_root / 'master-lab.env',                       # Repository root
+        notebook_dir / 'easy-deploy.env',                   # Easy-deploy notebook specific
+        notebook_dir / 'master-lab.env',                    # Reference notebook
+        repo_root / 'easy-deploy.env',                      # Repository root (easy-deploy)
+        repo_root / 'master-lab.env',                       # Repository root (reference)
+        Path.cwd() / 'easy-deploy.env',                     # Current working directory
         Path.cwd() / 'master-lab.env',                      # Current working directory
     ]
 
@@ -138,7 +190,7 @@ def get_azure_openai_client(endpoint=None, api_version="2024-10-21"):
     from azure.identity import AzureCliCredential, get_bearer_token_provider
 
     if endpoint is None:
-        # Try OPENAI_ENDPOINT first (has /inference path), then fall back to APIM_GATEWAY_URL
+        # Try OPENAI_ENDPOINT first, then fall back to APIM_GATEWAY_URL
         endpoint = os.getenv('OPENAI_ENDPOINT') or os.getenv('AZURE_OPENAI_ENDPOINT')
 
         # If using APIM_GATEWAY_URL, append /inference path
@@ -147,24 +199,34 @@ def get_azure_openai_client(endpoint=None, api_version="2024-10-21"):
             if apim_url:
                 endpoint = apim_url.rstrip('/') + '/inference'
 
+        # Fix: Remove trailing /openai if present - the OpenAI SDK adds this automatically
+        # OPENAI_ENDPOINT may have /inference/openai but SDK expects just /inference
+        if endpoint and endpoint.endswith('/openai'):
+            endpoint = endpoint[:-7]  # Remove '/openai'
+
     if not endpoint:
         raise ValueError("No Azure OpenAI endpoint found. Set OPENAI_ENDPOINT, AZURE_OPENAI_ENDPOINT, or APIM_GATEWAY_URL")
 
     # Check if APIM subscription key is available (try both naming conventions)
     apim_key = os.getenv('APIM_SUBSCRIPTION_KEY') or os.getenv('APIM_API_KEY')
-    
+
+    # If no key found, try to fetch it dynamically from Azure
+    if not apim_key:
+        apim_key = _fetch_apim_key_from_azure()
+
     if apim_key:
         # Use APIM subscription key authentication
+        # APIM policy expects "api-key" header (not "Ocp-Apim-Subscription-Key")
         client = AzureOpenAI(
             azure_endpoint=endpoint,
             api_key=apim_key,
             api_version=api_version,
-            default_headers={"Ocp-Apim-Subscription-Key": apim_key}
+            default_headers={"api-key": apim_key}
         )
-        
+
         print(f"✅ Azure OpenAI client created")
         print(f"   Endpoint: {endpoint}")
-        print(f"   Auth: APIM Subscription Key ({apim_key[:8]}...)")
+        print(f"   Auth: APIM API Key ({apim_key[:8]}...)")
     else:
         # Use Azure CLI credentials
         credential = AzureCliCredential()
