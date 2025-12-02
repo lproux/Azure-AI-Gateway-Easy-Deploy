@@ -7,15 +7,31 @@
 
 ## Quick Start
 
-### Option 1: GitHub Codespaces (Recommended)
+### Option 1: Easy Deploy with "Run All" (Recommended)
 
-1. Click the **Open in Codespaces** badge above
+The fastest way to deploy - works in GitHub Codespaces or locally:
+
+1. Click the **Open in Codespaces** badge above (or clone locally)
 2. Wait 3-5 minutes for environment setup
 3. Run: `az login --use-device-code`
-4. Open `master-ai-gateway-deploy-from-notebook.ipynb`
-5. Run cells in Section 0 to deploy infrastructure
+4. Open `master-ai-gateway-easy-deploy.ipynb`
+5. Click **"Run All"** - fully automated deployment!
 
-### Option 2: Local Setup
+**What you get:**
+- Zero-touch deployment with automatic RBAC setup
+- Auto-retrieves APIM subscription keys
+- All labs ready to explore after deployment
+- 34 cells (vs 152 in full version)
+
+### Option 2: Full Reference Notebook (Step-by-Step)
+
+For learning each deployment step in detail:
+
+1. Open `master-ai-gateway-deploy-from-notebook.ipynb`
+2. Run cells in Section 0 to deploy infrastructure
+3. Follow along with 152 documented cells
+
+### Option 3: Local Setup
 
 ```bash
 # Clone and setup
@@ -102,22 +118,52 @@ Setup and deploy all Azure infrastructure (Cells 1-44)
 
 ## Authentication Methods
 
-### Azure CLI (Recommended for Development)
+### Option 1: Azure CLI (Recommended for Development)
 ```bash
+# For Codespaces or remote environments
+az login --use-device-code
+
+# For local development with browser
 az login
+
+# Set subscription
 az account set --subscription <subscription-id>
 ```
+**Best for:** Development, Codespaces, local testing
 
-### Service Principal (For Automation)
+### Option 2: APIM Subscription Keys (Simple API Access)
+```bash
+# Keys are auto-retrieved by easy-deploy notebook
+# Or set manually in .env file:
+APIM_SUBSCRIPTION_KEY=your-key-here
+```
+**Best for:** Quick testing, external integrations
+
+### Option 3: Service Principal (For CI/CD)
 ```bash
 export AZURE_CLIENT_ID="<appId>"
 export AZURE_TENANT_ID="<tenant>"
 export AZURE_CLIENT_SECRET="<password>"
 export AZURE_SUBSCRIPTION_ID="<subscription-id>"
 ```
+**Best for:** Automated pipelines, CI/CD
 
-### Managed Identity (For Azure-Hosted)
-Automatically used when running on Azure compute.
+### Option 4: Managed Identity (For Production)
+```python
+from azure.identity import ManagedIdentityCredential
+credential = ManagedIdentityCredential()
+# Automatically used when running on Azure compute
+```
+**Best for:** Production workloads on Azure
+
+### Comparison
+
+| Method | Security | Setup | Use Case |
+|--------|----------|-------|----------|
+| Azure CLI | High | Low | Development |
+| APIM Keys | Medium | Low | Testing |
+| Service Principal | High | Medium | CI/CD |
+| Managed Identity | Highest | Medium | Production |
 
 ## Important: Deployment Timing
 
@@ -207,4 +253,4 @@ az group show --name <your-rg-name>
 
 ---
 
-**Last Updated:** 2025-11-29 | **Version:** 2.0.0
+**Last Updated:** 2025-12-02 | **Version:** 2.1.0

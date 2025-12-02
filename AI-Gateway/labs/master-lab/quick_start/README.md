@@ -16,16 +16,22 @@ This folder contains modular, standalone lab notebooks that share a common initi
 
 ## Prerequisites
 
-1. **Azure Resources Deployed**: Run the main deployment notebook first:
+1. **Azure Resources Deployed**: Run one of these deployment notebooks first:
    ```bash
    # From master-lab directory
-   jupyter notebook master-ai-gateway-fix-MCP-clean-documented-final.ipynb
+
+   # Option A: Easy Deploy (Recommended - supports "Run All")
+   jupyter notebook master-ai-gateway-easy-deploy.ipynb
+
+   # Option B: Full Reference Notebook (step-by-step)
+   jupyter notebook master-ai-gateway-deploy-from-notebook.ipynb
    # Run Section 0 to deploy all resources
    ```
 
 2. **Azure CLI Authenticated**:
    ```bash
-   az login
+   az login --use-device-code  # For Codespaces
+   az login                    # For local development
    az account set --subscription <your-subscription-id>
    ```
 
@@ -313,12 +319,14 @@ Found an issue or want to improve a lab? Contributions welcome!
 
 ## Resources
 
-- **Main Deployment Notebook**: `../master-ai-gateway-fix-MCP-clean-documented-final.ipynb`
-- **Documentation**: `../NOTEBOOK_DOCUMENTATION_README.md`
+- **Easy Deploy Notebook**: `../master-ai-gateway-easy-deploy.ipynb` (Recommended - supports "Run All")
+- **Full Reference Notebook**: `../master-ai-gateway-deploy-from-notebook.ipynb`
 - **Master Lab README**: `../README.md`
 - **Azure CLI Docs**: https://learn.microsoft.com/cli/azure/
 - **Azure OpenAI Docs**: https://learn.microsoft.com/azure/ai-services/openai/
 
 ---
 
-**Ready to start?** Pick a lab and run it! 🚀
+**Ready to start?** Pick a lab and run it!
+
+**Last Updated:** 2025-12-02

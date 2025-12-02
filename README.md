@@ -164,24 +164,30 @@ az deployment group create \
 
 ### Fast-Track Options for Different Use Cases
 
-#### Option 4: Easy Deploy Notebook ⚡ (Fastest Setup)
+#### Option 4: Easy Deploy Notebook ⚡ (Fastest - Supports "Run All")
 
-**Perfect for:** Quick demonstrations, proof-of-concepts, rapid prototyping
+**Perfect for:** Quick demonstrations, proof-of-concepts, GitHub Codespaces
 
-The streamlined version of the Master Lab with **78% reduction in setup complexity**:
+The streamlined version of the Master Lab designed for **zero-touch "Run All" execution**:
 
 ```bash
+# In GitHub Codespaces or VS Code:
 cd AI-Gateway/labs/master-lab
+
+# 1. Login to Azure (required once)
+az login --use-device-code
+
+# 2. Open notebook and click "Run All"
 # Open: master-ai-gateway-easy-deploy.ipynb
-# Just 34 cells vs 152 in full version
-# Automated deployment via utility modules
+# Just click "Run All" - fully automated!
 ```
 
 **Key Features:**
-- **34 cells** (vs 152 in full Master Lab)
-- **400 lines of code** (89% reduction)
+- **"Run All" Ready** - No manual cell execution needed
+- **34 cells** (vs 152 in full Master Lab, 78% reduction)
+- **Auto-RBAC Setup** - Assigns Cosmos DB and other permissions automatically
+- **Auto-retrieves APIM Keys** - No manual key copying required
 - **Same infrastructure** as Master Lab
-- **Automated** via `util/deploy_all.py`
 - **Time:** 35-40 minutes deployment
 - **Documentation:** [Easy Deploy Guide](./AI-Gateway/labs/master-lab/EASY_DEPLOY_README.md) | [Quick Start](./AI-Gateway/labs/master-lab/EASY_DEPLOY_QUICKSTART.md)
 
@@ -220,6 +226,7 @@ cd AI-Gateway/labs/master-lab/quick_start
 |---------|-----------|-------------|---------------------|--------------|-----------------|
 | **Setup Complexity** | High | Low | Minimal | Medium | Low |
 | **Cells/Steps** | 152 | 34 | 10-15 per lab | N/A | Varies |
+| **Run All Support** | Manual | **Yes** | Yes | N/A | Varies |
 | **Best For** | Comprehensive learning | Quick setup | Topic-specific | Production | Single feature |
 | **Time Investment** | 3-4 hours | 1 hour | 10 min/lab | 2 hours | 30-60 min |
 | **Flexibility** | All features | All features | Pick & choose | Production focus | Focused |
@@ -227,71 +234,71 @@ cd AI-Gateway/labs/master-lab/quick_start
 
 ---
 
+## 🔐 Authentication Options
 
-## 🎯 Alternative Deployment Paths
+Choose the authentication method that fits your use case:
 
-### Fast-Track Options for Different Use Cases
+### Option 1: Azure CLI Authentication (Recommended for Development)
 
-#### Option 4: Easy Deploy Notebook ⚡ (Fastest Setup)
-
-**Perfect for:** Quick demonstrations, proof-of-concepts, rapid prototyping
-
-The streamlined version of the Master Lab with **78% reduction in setup complexity**:
+Simple and secure - uses your Azure account directly:
 
 ```bash
-cd AI-Gateway/labs/master-lab
-# Open: master-ai-gateway-easy-deploy.ipynb
-# Just 34 cells vs 152 in full version
-# Automated deployment via utility modules
+# Login to Azure
+az login --use-device-code  # For Codespaces/remote environments
+az login                    # For local development with browser
+
+# Run notebooks - they use DefaultAzureCredential automatically
 ```
 
-**Key Features:**
-- **34 cells** (vs 152 in full Master Lab)
-- **400 lines of code** (89% reduction)
-- **Same infrastructure** as Master Lab
-- **Automated** via `util/deploy_all.py`
-- **Time:** 35-40 minutes deployment
-- **Documentation:** [Easy Deploy Guide](./AI-Gateway/labs/master-lab/EASY_DEPLOY_README.md) | [Quick Start](./AI-Gateway/labs/master-lab/EASY_DEPLOY_QUICKSTART.md)
+**Pros:** No secrets to manage, automatic token refresh, works everywhere
+**Best for:** Development, learning, Codespaces, local testing
 
-#### Option 5: Quick Start Modular Labs 🧩 (Learn by Topic)
+### Option 2: APIM Subscription Keys (Simple API Access)
 
-**Perfect for:** Learning specific features, running independent labs, minimal setup
-
-Run individual 10-minute labs after one-time infrastructure setup:
+Use API keys for straightforward API access:
 
 ```bash
-cd AI-Gateway/labs/master-lab/quick_start
+# Keys are auto-retrieved by easy-deploy notebook
+# Or manually get from Azure Portal:
+# APIM > Subscriptions > master > Show/Hide keys
 
-# One-time setup (run once)
-# Open: 00-quick-init.ipynb
-
-# Then run any lab independently:
-# 01-access-control.ipynb       (~10 min)
-# 02-semantic-caching.ipynb     (~10 min)
-# 03-message-storing.ipynb      (~10 min)
-# 04-vector-searching.ipynb     (~10 min)
-# 05-model-routing.ipynb        (~10 min)
-# 06-built-in-logging.ipynb     (~10 min)
-# 07-finops-framework.ipynb     (~10 min)
+# Set in environment or .env file:
+APIM_SUBSCRIPTION_KEY=your-key-here
 ```
 
-**Key Features:**
-- **Shared initialization** (`shared_init.py`) - no code duplication
-- **Independent labs** - run any lab in any order
-- **Quick iterations** - ~10 minutes per lab
-- **Same infrastructure** - uses Master Lab deployment
-- **Documentation:** [Quick Start Guide](./AI-Gateway/labs/master-lab/quick_start/README.md)
+**Pros:** Simple to use, no Azure AD required for API calls
+**Best for:** Quick testing, external integrations, CI/CD pipelines
 
-**Comparison:**
+### Option 3: Managed Identity (Production Recommended)
 
-| Feature | Master Lab | Easy Deploy | Quick Start Modular | APIM-Focused | Individual Labs |
-|---------|-----------|-------------|---------------------|--------------|-----------------|
-| **Setup Complexity** | High | Low | Minimal | Medium | Low |
-| **Cells/Steps** | 152 | 34 | 10-15 per lab | N/A | Varies |
-| **Best For** | Comprehensive learning | Quick setup | Topic-specific | Production | Single feature |
-| **Time Investment** | 3-4 hours | 1 hour | 10 min/lab | 2 hours | 30-60 min |
-| **Flexibility** | All features | All features | Pick & choose | Production focus | Focused |
-| **Infrastructure** | Full stack | Full stack | Full stack | APIM-centric | Minimal |
+Zero-secret authentication for Azure-hosted applications:
+
+```python
+from azure.identity import ManagedIdentityCredential, get_bearer_token_provider
+from openai import AzureOpenAI
+
+credential = ManagedIdentityCredential()
+client = AzureOpenAI(
+    azure_endpoint=endpoint,
+    azure_ad_token_provider=get_bearer_token_provider(
+        credential,
+        "https://cognitiveservices.azure.com/.default"
+    ),
+    api_version="2024-10-21"
+)
+```
+
+**Pros:** No secrets, automatic rotation, audit trail
+**Best for:** Production deployments, Container Apps, Azure Functions
+
+### Authentication Comparison
+
+| Method | Security | Setup Effort | Use Case |
+|--------|----------|--------------|----------|
+| Azure CLI (`az login`) | High | Low | Development, Codespaces |
+| APIM Subscription Keys | Medium | Low | Quick testing, external clients |
+| Managed Identity | Highest | Medium | Production workloads |
+| Service Principal | High | Medium | CI/CD, automation |
 
 ---
 
@@ -1174,6 +1181,6 @@ az group delete --name <rg-name> --yes --no-wait
 
 **🚀 Ready to build enterprise-grade AI solutions on Azure!**
 
-Last Updated: 2025-11-29
-Version: 2.1.0
+Last Updated: 2025-12-02
+Version: 2.2.0
 Maintained by: [LP Roux](https://github.com/lproux)
